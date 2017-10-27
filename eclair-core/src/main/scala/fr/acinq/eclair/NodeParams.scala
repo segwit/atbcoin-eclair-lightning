@@ -84,8 +84,10 @@ object NodeParams {
 
     val chain = config.getString("chain")
     val chainHash = chain match {
-      case "test" => Block.TestnetGenesisBlock.hash
-      case "regtest" => Block.RegtestGenesisBlock.hash
+      case "testnet" => "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+      case "regtest" => "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+      case "main" => "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+
       case _ => throw new RuntimeException("only regtest and testnet are supported for now")
     }
 

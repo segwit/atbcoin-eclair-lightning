@@ -26,7 +26,8 @@ import grizzled.slf4j.Logging
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
-
+import sys.process._
+import java.io.File
 /**
   * Created by PM on 25/01/2016.
   */
@@ -39,7 +40,6 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
   val nodeParams = NodeParams.makeNodeParams(datadir, config)
   val spv = config.getBoolean("spv")
   val chain = config.getString("chain")
-
   // early checks
   DBCompatChecker.checkDBCompatibility(nodeParams)
   PortChecker.checkAvailable(config.getString("server.binding-ip"), config.getInt("server.port"))
@@ -71,19 +71,60 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
       password = config.getString("bitcoind.rpcpassword"),
       host = config.getString("bitcoind.host"),
       port = config.getInt("bitcoind.rpcport")))
-    val future = for {
-      json <- bitcoinClient.rpcClient.invoke("getblockchaininfo").recover { case _ => throw BitcoinRPCConnectionException }
-      progress = (json \ "verificationprogress").extract[Double]
-      chainHash <- bitcoinClient.rpcClient.invoke("getblockhash", 0).map(_.extract[String]).map(BinaryData(_)).map(x => BinaryData(x.reverse))
-      bitcoinVersion <- bitcoinClient.rpcClient.invoke("getnetworkinfo").map(json => (json \ "version")).map(_.extract[String])
-    } yield (progress, chainHash, bitcoinVersion)
-    // blocking sanity checks
-    val (progress, chainHash, bitcoinVersion) = Await.result(future, 10 seconds)
-    assert(chainHash == nodeParams.chainHash, s"chainHash mismatch (conf=${nodeParams.chainHash} != bitcoind=$chainHash)")
-    assert(progress > 0.99, "bitcoind should be synchronized")
+
+    var connectState = false
+    var connectionAttempts = 3
+    while(!connectState && connectionAttempts != 0){
+      val future = for {
+        json <- bitcoinClient.rpcClient.invoke("getblockchaininfo").recover { case _ => throw BitcoinRPCConnectionException }
+        progress = (json \ "verificationprogress").extract[Double]
+        chainHash <- bitcoinClient.rpcClient.invoke("getblockhash", 0).map(_.extract[String]).map(BinaryData(_)).map(x => BinaryData(x.reverse))
+        bitcoinVersion <- bitcoinClient.rpcClient.invoke("getnetworkinfo").map(json => (json \ "version")).map(_.extract[String])
+      } yield (progress, chainHash, bitcoinVersion)
+      // blocking sanity checks
+      try{
+        val (progress, chainHash, bitcoinVersion) = Await.result(future, 10 seconds)
+        //    assert(chainHash == nodeParams.chainHash, s"chainHash mismatch (conf=${nodeParams.chainHash} != bitcoind=$chainHash)")
+        assert(progress > 0.99, "bitcoind should be synchronized")
+        connectState = true;
+      }catch {
+        case _:Throwable=>{
+          /*
+          *
+          * ./bitcoind -regtest -daemon -rpcuser=foo -rpcpassword=bar -server=1
+          * -txindex=1 -zmqpubrawblock=tcp://127.0.0.1:29000 -zmqpubrawtx=tcp://127.0.0.1:29000
+          * -rpcport=18332
+          *
+          * */
+          // run atbcoin daemon if closed it.
+          val os = sys.props("os.name").toLowerCase
+          val proc = os match {
+            case "windows" => Seq("./atbcoind.exe","-daemon","-server=1","-txindex=1","-" + chain,"-rpcuser=foo","-rpcpassword=bar","-zmqpubrawblock=tcp://127.0.0.1:29000",
+              "-zmqpubrawtx=tcp://127.0.0.1:29000","-rpcport=18332")
+
+            case _ => Seq("./atbcoind","-daemon","-server=1","-txindex=1","-" + chain,"-rpcuser=foo","-rpcpassword=bar","-zmqpubrawblock=tcp://127.0.0.1:29000",
+              "-zmqpubrawtx=tcp://127.0.0.1:29000","-rpcport=18332")
+          }
+          try {
+            val output = proc.run()
+            println("the atbcoind inited with id : " + output + " on " + chain)
+            connectState = true
+          }catch {
+            case _:Throwable => {throw BitcoinStartDaemonException}
+          }
+
+        }
+      }
+      connectionAttempts -= 1
+    }
+
     // TODO: add a check on bitcoin version?
     Right(bitcoinClient)
   }
+
+
+
+
 
   def bootstrap: Future[Kit] = {
     val zmqConnected = Promise[Boolean]()
@@ -180,6 +221,8 @@ case class Kit(nodeParams: NodeParams,
                server: ActorRef,
                wallet: EclairWallet)
 
-case object BitcoinZMQConnectionTimeoutException extends RuntimeException("could not connect to bitcoind using zeromq")
+case object BitcoinZMQConnectionTimeoutException extends RuntimeException("could not connect to atbcoind using zeromq")
 
-case object BitcoinRPCConnectionException extends RuntimeException("could not connect to bitcoind using json-rpc")
+case object BitcoinRPCConnectionException extends RuntimeException("could not connect to atbcoind using json-rpc")
+
+case object BitcoinStartDaemonException extends RuntimeException("could not start the atbcoind")
