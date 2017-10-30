@@ -147,6 +147,7 @@ object BitcoinjKit {
 
   def chain2Params(chain: String): NetworkParameters = chain match {
     case "regtest" => RegTestParams.get()
-    case "test" => TestNet3Params.get()
+    case "testnet" => TestNet3Params.get()
+
   }
 }

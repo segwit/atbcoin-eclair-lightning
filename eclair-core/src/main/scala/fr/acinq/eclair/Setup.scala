@@ -40,6 +40,9 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
   val nodeParams = NodeParams.makeNodeParams(datadir, config)
   val spv = config.getBoolean("spv")
   val chain = config.getString("chain")
+  val user = config.getString("bitcoind.rpcuser")
+  val pass = config.getString("bitcoind.rpcpassword")
+
   // early checks
   DBCompatChecker.checkDBCompatibility(nodeParams)
   PortChecker.checkAvailable(config.getString("server.binding-ip"), config.getInt("server.port"))
@@ -84,7 +87,7 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
       // blocking sanity checks
       try{
         val (progress, chainHash, bitcoinVersion) = Await.result(future, 10 seconds)
-        //    assert(chainHash == nodeParams.chainHash, s"chainHash mismatch (conf=${nodeParams.chainHash} != bitcoind=$chainHash)")
+        assert(chainHash == nodeParams.chainHash, s"chainHash mismatch (conf=${nodeParams.chainHash} != bitcoind=$chainHash)")
         assert(progress > 0.99, "bitcoind should be synchronized")
         connectState = true;
       }catch {
@@ -99,11 +102,11 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
           // run atbcoin daemon if closed it.
           val os = sys.props("os.name").toLowerCase
           val proc = os match {
-            case "windows" => Seq("./atbcoind.exe","-daemon","-server=1","-txindex=1","-" + chain,"-rpcuser=foo","-rpcpassword=bar","-zmqpubrawblock=tcp://127.0.0.1:29000",
-              "-zmqpubrawtx=tcp://127.0.0.1:29000","-rpcport=18332")
+            case "windows" => Seq("./atbcoind.exe","-daemon","-server=1","-txindex=1","-rpcuser=" + user,"-rpcpassword=" + pass,"-" + chain,"-zmqpubrawblock=tcp://127.0.0.1:29000",
+              "-zmqpubrawtx=tcp://127.0.0.1:29000")
 
-            case _ => Seq("./atbcoind","-daemon","-server=1","-txindex=1","-" + chain,"-rpcuser=foo","-rpcpassword=bar","-zmqpubrawblock=tcp://127.0.0.1:29000",
-              "-zmqpubrawtx=tcp://127.0.0.1:29000","-rpcport=18332")
+            case _ => Seq("./atbcoind","-daemon","-server=1","-txindex=1","-rpcuser=" + user,"-rpcpassword=" + pass,"-" + chain,"-zmqpubrawblock=tcp://127.0.0.1:29000",
+              "-zmqpubrawtx=tcp://127.0.0.1:29000")
           }
           try {
             val output = proc.run()
