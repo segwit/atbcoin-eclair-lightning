@@ -18,7 +18,7 @@ class ExtendedBitcoinClientSpec extends FunSuite {
     user = config.getString("eclair.bitcoind.rpcuser"),
     password = config.getString("eclair.bitcoind.rpcpassword"),
     host = config.getString("eclair.bitcoind.host"),
-    port = 18332))
+    port = 0))
 
   implicit val formats = org.json4s.DefaultFormats
   implicit val ec = ExecutionContext.Implicits.global

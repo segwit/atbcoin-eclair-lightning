@@ -69,11 +69,20 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
     Await.ready(bitcoinjKit.initialized, 10 seconds)
     Left(bitcoinjKit)
   } else {
+    var rpcport = config.getInt("bitcoind.rpcport")
+    if(rpcport == 0){
+      rpcport = chain match {
+        case "main" => 8332
+        case _=> 18832
+      }
+    }
+
     val bitcoinClient = new ExtendedBitcoinClient(new BitcoinJsonRPCClient(
       user = config.getString("bitcoind.rpcuser"),
       password = config.getString("bitcoind.rpcpassword"),
       host = config.getString("bitcoind.host"),
-      port = config.getInt("bitcoind.rpcport")))
+      port = rpcport)
+    )
 
     var connectState = false
     var connectionAttempts = 3
@@ -91,7 +100,7 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
       try{
         val (progress, chainHash, bitcoinVersion) = Await.result(future, 10 seconds)
         isChainHash = (chainHash == nodeParams.chainHash)
-        errorMessages = s"chainHash mismatch (conf=${nodeParams.chainHash} != atbcoin=$chainHash)"
+        errorMessages = s"(conf=${nodeParams.chainHash} != atbcoin=$chainHash)"
         prog = progress
         connectState = true;
       }catch {
@@ -125,7 +134,8 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
       }
       connectionAttempts -= 1
     }while(!connectState && connectionAttempts != 0)
-    assert(isChainHash, errorMessages)
+
+    assert(isChainHash,"chainHash mismatch" + errorMessages)
     assert(prog > 0.99, "atbcoin should be synchronized")
 
     // TODO: add a check on bitcoin version?
