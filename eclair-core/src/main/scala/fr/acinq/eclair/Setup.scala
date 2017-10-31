@@ -77,7 +77,10 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
 
     var connectState = false
     var connectionAttempts = 3
-    while(!connectState && connectionAttempts != 0){
+    var isChainHash = false
+    var errorMessages = ""
+    var prog = 0.0
+    do{
       val future = for {
         json <- bitcoinClient.rpcClient.invoke("getblockchaininfo").recover { case _ => throw BitcoinRPCConnectionException }
         progress = (json \ "verificationprogress").extract[Double]
@@ -87,8 +90,9 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
       // blocking sanity checks
       try{
         val (progress, chainHash, bitcoinVersion) = Await.result(future, 10 seconds)
-        assert(chainHash == nodeParams.chainHash, s"chainHash mismatch (conf=${nodeParams.chainHash} != bitcoind=$chainHash)")
-        assert(progress > 0.99, "bitcoind should be synchronized")
+        isChainHash = (chainHash == nodeParams.chainHash)
+        errorMessages = s"chainHash mismatch (conf=${nodeParams.chainHash} != atbcoin=$chainHash)"
+        prog = progress
         connectState = true;
       }catch {
         case _:Throwable=>{
@@ -100,6 +104,7 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
           *
           * */
           // run atbcoin daemon if closed it.
+          connectState = false
           val os = sys.props("os.name").toLowerCase
           val proc = os match {
             case "windows" => Seq("./atbcoind.exe","-daemon","-server=1","-txindex=1","-rpcuser=" + user,"-rpcpassword=" + pass,"-" + chain,"-zmqpubrawblock=tcp://127.0.0.1:29000",
@@ -119,7 +124,9 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
         }
       }
       connectionAttempts -= 1
-    }
+    }while(!connectState && connectionAttempts != 0)
+    assert(isChainHash, errorMessages)
+    assert(prog > 0.99, "atbcoin should be synchronized")
 
     // TODO: add a check on bitcoin version?
     Right(bitcoinClient)
