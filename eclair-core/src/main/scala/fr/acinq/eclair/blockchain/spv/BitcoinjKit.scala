@@ -14,7 +14,7 @@ import org.bitcoinj.core.TransactionConfidence.ConfidenceType
 import org.bitcoinj.core.listeners._
 import org.bitcoinj.core.{Block, Context, FilteredBlock, NetworkParameters, Peer, PeerAddress, StoredBlock, VersionMessage, Transaction => BitcoinjTransaction}
 import org.bitcoinj.kits.WalletAppKit
-import org.bitcoinj.params.{RegTestParams, TestNet3Params}
+import org.bitcoinj.params.{MainNetParams, RegTestParams, TestNet3Params}
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.Wallet
 
@@ -146,6 +146,7 @@ class BitcoinjKit(chain: String, datadir: File, staticPeers: List[InetSocketAddr
 object BitcoinjKit {
 
   def chain2Params(chain: String): NetworkParameters = chain match {
+    case "main" => MainNetParams.get()
     case "regtest" => RegTestParams.get()
     case "testnet" => TestNet3Params.get()
 
