@@ -15,6 +15,13 @@ object BlockHeader extends BtcSerializer[BlockHeader] {
     val time = uint32(input)
     val bits = uint32(input)
     val nonce = uint32(input)
+
+    val sizeVchSig = uint8(input)
+    val vchSig = bytes(input, sizeVchSig)
+
+    val prev_stake_hash = hash(input)
+    val prev_stake_n = uint32(input)
+
     BlockHeader(version, hashPreviousBlock, hashMerkleRoot, time, bits, nonce)
   }
 
@@ -59,8 +66,7 @@ case class BlockHeader(version: Long, hashPreviousBlock: BinaryData, hashMerkleR
 
 object Block extends BtcSerializer[Block] {
   override def read(input: InputStream, protocolVersion: Long): Block = {
-    val raw = bytes(input, 80)
-    val header = BlockHeader.read(raw)
+    val header = BlockHeader.read(input)
     Block(header, readCollection[Transaction](input, protocolVersion))
   }
 
