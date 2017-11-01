@@ -73,7 +73,7 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
     if(rpcport == 0){
       rpcport = chain match {
         case "main" => 8332
-        case _=> 18832
+        case _=> 18332
       }
     }
 
@@ -85,7 +85,7 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
     )
 
     var connectState = false
-    var connectionAttempts = 3
+    var connectionAttempts = 2
     var isChainHash = false
     var errorMessages = ""
     var prog = 0.0
@@ -124,8 +124,7 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
           }
           try {
             val output = proc.run()
-            println("the atbcoind inited with id : " + output + " on " + chain)
-            connectState = true
+            println("the atbcoind inited with id : " + output + " on " + chain + "os")
           }catch {
             case _:Throwable => {throw BitcoinStartDaemonException}
           }
