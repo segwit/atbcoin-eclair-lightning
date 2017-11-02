@@ -51,8 +51,8 @@ class GUIUpdater(mainController: MainController) extends Actor with ActorLogging
 
   def updateBalance(channelPaneController: ChannelPaneController, commitments: Commitments) = {
     val spec = commitments.localCommit.spec
-    channelPaneController.capacity.setText(s"${CoinFormat.MILLI_BTC_FORMAT.format(millisatoshi2millibtc(MilliSatoshi(spec.totalFunds)).amount)}")
-    channelPaneController.amountUs.setText(s"${CoinFormat.MILLI_BTC_FORMAT.format(millisatoshi2millibtc(MilliSatoshi(spec.toLocalMsat)).amount)}")
+    channelPaneController.capacity.setText(s"${CoinFormat.MILLI_ATB_FORMAT.format(millisatoshi2millibtc(MilliSatoshi(spec.totalFunds)).amount)}")
+    channelPaneController.amountUs.setText(s"${CoinFormat.MILLI_ATB_FORMAT.format(millisatoshi2millibtc(MilliSatoshi(spec.toLocalMsat)).amount)}")
     channelPaneController.balanceBar.setProgress(spec.toLocalMsat.toDouble / spec.totalFunds)
   }
 
