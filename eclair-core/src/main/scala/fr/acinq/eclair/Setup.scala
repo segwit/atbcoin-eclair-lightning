@@ -33,6 +33,23 @@ import java.io.File
   */
 class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), actorSystem: ActorSystem = ActorSystem()) extends Logging {
 
+
+  def isOpenPort(Port:Int,address:String ="127.0.0.1",duration:Duration = 10 seconds):Int = {
+    val socketTimeout = 200
+    try {
+        val socket = new java.net.Socket()
+        socket.connect(new java.net.InetSocketAddress(address, Port),socketTimeout)
+        socket.close()
+        return 1
+      }catch {
+      case _:Throwable=>{
+        return 0
+      }
+    }
+  }
+
+
+
   logger.info(s"hello!")
   logger.info(s"version=${getClass.getPackage.getImplementationVersion} commit=${getClass.getPackage.getSpecificationVersion}")
 
@@ -84,58 +101,44 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
       port = rpcport)
     )
 
-    var connectState = false
-    var connectionAttempts = 2
-    var isChainHash = false
-    var errorMessages = ""
-    var prog = 0.0
-    do{
-      val future = for {
+    if(isOpenPort(rpcport) == 0 ){
+      /*
+      *
+      * ./bitcoind -regtest -daemon -rpcuser=foo -rpcpassword=bar -server=1
+      * -zmqpubrawblock=tcp://127.0.0.1:29000 -zmqpubrawtx=tcp://127.0.0.1:29000
+      *
+      * */
+      // run atbcoin daemon if closed it.
+      val os = sys.props("os.name").toLowerCase
+      val proc = os match {
+
+        case "mac os x" => Seq("open","-a","ATBCoin-qt","--args","-rpcuser=" + user,"-rpcpassword=" + pass,"-" + chain)
+
+        case "windows" => Seq("./atbcoind.exe","-daemon","-server=1","-rpcuser=" + user,"-rpcpassword=" + pass,"-" + chain)
+
+        case _ => Seq("./atbcoind","-daemon","-server=1","-rpcuser=" + user,"-rpcpassword=" + pass,"-" + chain)
+      }
+      try {
+        val output = proc.run()
+        println("the atbcoind inited with id : " + output + " on " + chain + " os = " + os)
+        Thread.sleep(1000)
+      }catch {
+        case _:Throwable => {
+          println("the atbcoind inited failed  on " + chain + " os = " + os)
+          throw BitcoinStartDaemonException}
+      }
+    }
+
+    val future = for {
         json <- bitcoinClient.rpcClient.invoke("getblockchaininfo").recover { case _ => throw BitcoinRPCConnectionException }
         progress = (json \ "verificationprogress").extract[Double]
         chainHash <- bitcoinClient.rpcClient.invoke("getblockhash", 0).map(_.extract[String]).map(BinaryData(_)).map(x => BinaryData(x.reverse))
         bitcoinVersion <- bitcoinClient.rpcClient.invoke("getnetworkinfo").map(json => (json \ "version")).map(_.extract[String])
       } yield (progress, chainHash, bitcoinVersion)
       // blocking sanity checks
-      try{
-        val (progress, chainHash, bitcoinVersion) = Await.result(future, 10 seconds)
-        isChainHash = (chainHash == nodeParams.chainHash)
-        errorMessages = s"(conf=${nodeParams.chainHash} != atbcoin=$chainHash)"
-        prog = progress
-        connectState = true;
-      }catch {
-        case _:Throwable=>{
-          /*
-          *
-          * ./bitcoind -regtest -daemon -rpcuser=foo -rpcpassword=bar -server=1
-          * -txindex=1 -zmqpubrawblock=tcp://127.0.0.1:29000 -zmqpubrawtx=tcp://127.0.0.1:29000
-          * -rpcport=18332
-          *
-          * */
-          // run atbcoin daemon if closed it.
-          connectState = false
-          val os = sys.props("os.name").toLowerCase
-          val proc = os match {
-            case "windows" => Seq("./atbcoind.exe","-daemon","-server=1","-txindex=1","-rpcuser=" + user,"-rpcpassword=" + pass,"-" + chain,"-zmqpubrawblock=tcp://127.0.0.1:29000",
-              "-zmqpubrawtx=tcp://127.0.0.1:29000")
-
-            case _ => Seq("./atbcoind","-daemon","-server=1","-txindex=1","-rpcuser=" + user,"-rpcpassword=" + pass,"-" + chain,"-zmqpubrawblock=tcp://127.0.0.1:29000",
-              "-zmqpubrawtx=tcp://127.0.0.1:29000")
-          }
-          try {
-            val output = proc.run()
-            println("the atbcoind inited with id : " + output + " on " + chain + "os")
-          }catch {
-            case _:Throwable => {throw BitcoinStartDaemonException}
-          }
-
-        }
-      }
-      connectionAttempts -= 1
-    }while(!connectState && connectionAttempts != 0)
-
-    assert(isChainHash,"chainHash mismatch" + errorMessages)
-    assert(prog > 0.99, "atbcoin should be synchronized")
+    val (progress, chainHash, bitcoinVersion) = Await.result(future, 10 seconds)
+    assert(chainHash == nodeParams.chainHash, s" chainHash mismatch (conf=${nodeParams.chainHash} != atbcoin=$chainHash)")
+    assert(progress > 0.99, "atbcoin should be synchronized")
 
     // TODO: add a check on bitcoin version?
     Right(bitcoinClient)
