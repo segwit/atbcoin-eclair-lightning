@@ -28,6 +28,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import sys.process._
 import java.io.File
+import scala.io.Source
 /**
   * Created by PM on 25/01/2016.
   */
@@ -49,6 +50,28 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
   }
 
 
+  def getCookieDir():String = {
+    val cookiepath = chain match {
+      case "main" => atbdir + "/.cookie"
+      case "testnet" => atbdir + "/testnet3/.cookie"
+      case "regtest" => atbdir + "/regtest/.cookie"
+    }
+    cookiepath
+  }
+
+  def getRPCUserPass(): (String, String) = {
+    var user = config.getString("bitcoind.rpcuser")
+    var pass = config.getString("bitcoind.rpcpassword")
+    if(user == "" && pass == ""){                           //from directory
+      if(atbdir == "") //for console
+        atbdir = System.getProperty("user.home") + "/.ATBCoinWallet"
+      val cookiepath = getCookieDir
+      val cookie = Source.fromFile(cookiepath, "UTF-8").mkString.split(":")
+      user = cookie(0)
+      pass = cookie(1)
+    }
+    (user, pass)
+  }
 
   logger.info(s"hello!")
   logger.info(s"version=${getClass.getPackage.getImplementationVersion} commit=${getClass.getPackage.getSpecificationVersion}")
@@ -57,8 +80,8 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
   val nodeParams = NodeParams.makeNodeParams(datadir, config)
   val spv = config.getBoolean("spv")
   val chain = config.getString("chain")
-  val user = config.getString("bitcoind.rpcuser")
-  val pass = config.getString("bitcoind.rpcpassword")
+  var atbdir = config.getString("bitcoind.atbdir")
+  val(user, pass) = getRPCUserPass
 
   // early checks
   DBCompatChecker.checkDBCompatibility(nodeParams)
@@ -95,8 +118,8 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
     }
 
     val bitcoinClient = new ExtendedBitcoinClient(new BitcoinJsonRPCClient(
-      user = config.getString("bitcoind.rpcuser"),
-      password = config.getString("bitcoind.rpcpassword"),
+      user = user,
+      password = pass,
       host = config.getString("bitcoind.host"),
       port = rpcport)
     )
