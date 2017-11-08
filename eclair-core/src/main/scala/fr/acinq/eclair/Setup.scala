@@ -82,6 +82,7 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
   val chain = config.getString("chain")
   var atbdir = config.getString("bitcoind.atbdir")
   val(user, pass) = getRPCUserPass
+  var atbVersion:String = ""
 
   // early checks
   DBCompatChecker.checkDBCompatibility(nodeParams)
@@ -163,10 +164,13 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
     assert(chainHash == nodeParams.chainHash, s" chainHash mismatch (conf=${nodeParams.chainHash} != atbcoin=$chainHash)")
     assert(progress > 0.99, "atbcoin should be synchronized")
 
+    atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 4, bitcoinVersion.length() - 2)
+    atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 6, bitcoinVersion.length() - 4) + "." + atbVersion
+    atbVersion = bitcoinVersion.substring(0, bitcoinVersion.length() - 6) +  "." + atbVersion
+
     // TODO: add a check on bitcoin version?
     Right(bitcoinClient)
   }
-
 
 
 

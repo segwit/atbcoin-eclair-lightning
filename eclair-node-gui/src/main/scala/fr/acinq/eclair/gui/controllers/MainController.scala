@@ -313,8 +313,7 @@ class MainController(val handlers: Handlers, val hostServices: HostServices) ext
     rectRGB.setFill(Color.rgb(setup.nodeParams.color._1 & 0xFF, setup.nodeParams.color._2 & 0xFF, setup.nodeParams.color._3 & 0xFF))
     labelApi.setText(s"${setup.config.getInt("api.port")}")
     labelServer.setText(s"${setup.config.getInt("server.port")}")
-    bitcoinVersion.setText(s"v0.0.0")
-    //bitcoinVersion.setText(s"v${setup.bitcoinVersion}")
+    bitcoinVersion.setText(s"v${setup.atbVersion}")
     bitcoinChain.setText(s"${setup.chain.toUpperCase()}")
     bitcoinChain.getStyleClass.add(setup.chain)
 
