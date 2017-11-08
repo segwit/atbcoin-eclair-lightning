@@ -54,8 +54,7 @@
                         <configuration>
                             <appClass>fr.acinq.eclair.JavafxBoot</appClass>
                             <type>fat</type>
-                            <fileName>${project.name}-${project.version}</fileName>
-                            <fileDesc>-${git.commit.id.abbrev}</fileDesc>
+                            <fileName>${project.name}</fileName>
                         </configuration>
                     </execution>
                 </executions>
