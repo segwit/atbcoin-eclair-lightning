@@ -167,8 +167,8 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
     atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 4, bitcoinVersion.length() - 2)
     atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 6, bitcoinVersion.length() - 4) + "." + atbVersion
     atbVersion = bitcoinVersion.substring(0, bitcoinVersion.length() - 6) +  "." + atbVersion
+    atbVersion = atbVersion.replace(".0", ".")
 
-    // TODO: add a check on bitcoin version?
     Right(bitcoinClient)
   }
 
