@@ -75,7 +75,7 @@ class FxApp extends Application with Logging {
               Platform.runLater(new Runnable {
                 override def run(): Unit = {
                   val scene = new Scene(mainRoot)
-                  primaryStage.setTitle("Eclair")
+                  primaryStage.setTitle("Lightning")
                   primaryStage.setMinWidth(600)
                   primaryStage.setWidth(960)
                   primaryStage.setMinHeight(400)
