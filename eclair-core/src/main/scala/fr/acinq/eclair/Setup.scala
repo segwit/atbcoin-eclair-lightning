@@ -126,34 +126,6 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
       port = rpcport)
     )
 
-    if(isOpenPort(rpcport) == 0 ){
-      /*
-      *
-      * ./bitcoind -regtest -daemon -rpcuser=foo -rpcpassword=bar -server=1
-      * -zmqpubrawblock=tcp://127.0.0.1:29000 -zmqpubrawtx=tcp://127.0.0.1:29000
-      *
-      * */
-      // run atbcoin daemon if closed it.
-      val os = sys.props("os.name").toLowerCase
-      val proc = os match {
-
-        case "mac os x" => Seq("open","-a","ATBCoin-qt","--args","-rpcuser=" + user,"-rpcpassword=" + pass,"-" + chain)
-
-        case "windows" => Seq("./atbcoind.exe","-daemon","-server=1","-rpcuser=" + user,"-rpcpassword=" + pass,"-" + chain)
-
-        case _ => Seq("./atbcoind","-daemon","-server=1","-rpcuser=" + user,"-rpcpassword=" + pass,"-" + chain)
-      }
-      try {
-        val output = proc.run()
-        println("the atbcoind inited with id : " + output + " on " + chain + " os = " + os)
-        Thread.sleep(1000)
-      }catch {
-        case _:Throwable => {
-          println("the atbcoind inited failed  on " + chain + " os = " + os)
-          throw BitcoinStartDaemonException}
-      }
-    }
-
     val future = for {
         json <- bitcoinClient.rpcClient.invoke("getblockchaininfo").recover { case _ => throw BitcoinRPCConnectionException }
         progress = (json \ "verificationprogress").extract[Double]
