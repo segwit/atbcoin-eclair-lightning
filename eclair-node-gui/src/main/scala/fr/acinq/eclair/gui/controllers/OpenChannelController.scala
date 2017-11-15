@@ -64,7 +64,7 @@ class OpenChannelController(val handlers: Handlers, val stage: Stage) extends Lo
           val smartFunding = unit.getValue match {
             case "milliATB" => Satoshi(rawFunding * 100000L)
             case "Satoshi" => Satoshi(rawFunding)
-            case "milliSatoshi" => Satoshi(rawFunding / 1000L)
+            case "ATB" => Satoshi(rawFunding * 100000000L)
           }
           if (GUIValidators.validate(fundingSatoshisError, "Funding must be 16 777 216 satoshis (~0.167 ATB) or less", smartFunding.toLong < maxFunding)) {
             if (!pushMsat.getText.isEmpty) {

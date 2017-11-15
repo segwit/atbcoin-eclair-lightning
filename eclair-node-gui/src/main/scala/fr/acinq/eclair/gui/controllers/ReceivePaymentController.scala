@@ -62,7 +62,7 @@ class ReceivePaymentController(val handlers: Handlers, val stage: Stage) extends
         val smartAmount = unit.getValue match {
           case "milliATB" => MilliSatoshi(parsedInt.toLong * 100000000L + amountDec.toLong * 100000L)
           case "Satoshi" => MilliSatoshi(parsedInt.toLong * 1000L + amountDec.toLong)
-          case "milliSatoshi" => MilliSatoshi(amount.getText.toLong)
+          case "ATB" => MilliSatoshi(parsedInt.toLong * 100000000000L + amountDec.toLong * 100000000L)
         }
         if (GUIValidators.validate(amountError, "Amount must be greater than 0", smartAmount.amount > 0)
           && GUIValidators.validate(amountError, f"Amount must be less than ${PaymentRequest.maxAmount.amount}%,d msat (~${PaymentRequest.maxAmount.amount / 1e11}%.3f ATB)", smartAmount < PaymentRequest.maxAmount)

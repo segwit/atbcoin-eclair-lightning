@@ -30,9 +30,9 @@
                 <ComboBox fx:id="unit" GridPane.columnIndex="2" GridPane.rowIndex="0" GridPane.halignment="RIGHT">
                     <items>
                         <FXCollections fx:factory="observableArrayList">
-                            <String fx:id="milliBTC" fx:value="milliATB" />
-                            <String fx:id="Satoshi" fx:value="Satoshi" />
-                            <String fx:id="milliSatoshi" fx:value="milliSatoshi" />
+                            <String fx:id="milliBTC" fx:value="ATB" />
+                            <String fx:id="Satoshi" fx:value="milliATB" />
+                            <String fx:id="milliSatoshi" fx:value="Satoshi" />
                         </FXCollections>
                     </items>
                 </ComboBox>
