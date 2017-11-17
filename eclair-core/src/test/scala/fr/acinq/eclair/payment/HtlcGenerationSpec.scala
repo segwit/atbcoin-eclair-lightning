@@ -21,7 +21,7 @@ class HtlcGenerationSpec extends FunSuite {
   test("compute fees") {
     val feeBaseMsat = 150000L
     val feeProportionalMillionth = 4L
-    val htlcAmountMsat = 42000000
+    val htlcAmountMsat = 42000000L
     // spec: fee-base-msat + htlc-amount-msat * fee-proportional-millionths / 1000000
     val ref = feeBaseMsat + htlcAmountMsat * feeProportionalMillionth / 1000000
     val fee = nodeFee(feeBaseMsat, feeProportionalMillionth, htlcAmountMsat)

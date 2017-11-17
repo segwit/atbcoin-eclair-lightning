@@ -26,8 +26,8 @@ class OpenChannelController(val handlers: Handlers, val stage: Stage) extends Lo
     *
     * https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#requirements
     */
-  val maxFunding = 16777216L
-  val maxPushMsat = 1000L * maxFunding
+  val maxFunding = 16777216000L
+  val maxPushMsat = 1000000L * maxFunding
 
   @FXML var host: TextField = _
   @FXML var hostError: Label = _
