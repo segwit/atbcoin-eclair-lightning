@@ -45,9 +45,8 @@ class ReceivePaymentController(val handlers: Handlers, val stage: Stage) extends
   @FXML def handleCopyInvoice(event: ActionEvent) = ContextMenuUtils.copyToClipboard(paymentRequestTextArea.getText)
 
   @FXML def handleGenerate(event: ActionEvent) = {
-    if ((("milliATB".equals(unit.getValue) || "Satoshi".equals(unit.getValue))
-      && GUIValidators.validate(amount.getText, amountError, "Amount must be numeric", GUIValidators.amountDecRegex))
-      || ("milliSatoshi".equals(unit.getValue) && GUIValidators.validate(amount.getText, amountError, "Amount must be numeric (no decimal msat)", GUIValidators.amountRegex))) {
+    if ((("milliATB".equals(unit.getValue) || "Satoshi".equals(unit.getValue) || "ATB".equals(unit.getValue))
+      && GUIValidators.validate(amount.getText, amountError, "Amount must be numeric", GUIValidators.amountDecRegex))) {
       try {
         val Array(parsedInt, parsedDec) = if (amount.getText.contains(".")) amount.getText.split("\\.") else Array(amount.getText, "0")
         val amountDec = parsedDec.length match {
