@@ -68,7 +68,7 @@
 
         <VBox alignment="CENTER_RIGHT" GridPane.rowIndex="4">
             <children>
-                <Label styleClass="text-strong" text="Push Amount (msat)" />
+                <Label styleClass="text-strong" text="Push Amount" />
                 <Label styleClass="label-description" text="Sent when opening channel" textAlignment="RIGHT" wrapText="true" />
             </children>
         </VBox>

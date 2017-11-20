@@ -92,8 +92,8 @@
                                                         <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
                                                         <columns>
                                                             <TableColumn fx:id="paymentSentDateColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" text="Date" />
-                                                            <TableColumn fx:id="paymentSentAmountColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" styleClass="align-right" text="Amount (msat)" />
-                                                            <TableColumn fx:id="paymentSentFeesColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" styleClass="align-right" text="Fees Paid (msat)" />
+                                                            <TableColumn fx:id="paymentSentAmountColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" styleClass="align-right" text="Amount (atb)" />
+                                                            <TableColumn fx:id="paymentSentFeesColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" styleClass="align-right" text="Fees Paid (atb)" />
                                                             <TableColumn fx:id="paymentSentHashColumn" text="Payment Hash" />
                                                         </columns>
                                                     </TableView>
@@ -103,7 +103,7 @@
                                                         <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
                                                         <columns>
                                                             <TableColumn fx:id="paymentReceivedDateColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" text="Date" />
-                                                            <TableColumn fx:id="paymentReceivedAmountColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" styleClass="align-right" text="Amount (msat)" />
+                                                            <TableColumn fx:id="paymentReceivedAmountColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" styleClass="align-right" text="Amount (atb)" />
                                                             <TableColumn fx:id="paymentReceivedHashColumn" text="Payment Hash" />
                                                         </columns>
                                                     </TableView>
@@ -113,8 +113,8 @@
                                                         <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
                                                         <columns>
                                                             <TableColumn fx:id="paymentRelayedDateColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" text="Date" />
-                                                            <TableColumn fx:id="paymentRelayedAmountColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" styleClass="align-right" text="Amount (msat)" />
-                                                            <TableColumn fx:id="paymentRelayedFeesColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" styleClass="align-right" text="Fees Earned (msat)" />
+                                                            <TableColumn fx:id="paymentRelayedAmountColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" styleClass="align-right" text="Amount (atb)" />
+                                                            <TableColumn fx:id="paymentRelayedFeesColumn" maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" styleClass="align-right" text="Fees Earned (atb)" />
                                                             <TableColumn fx:id="paymentRelayedHashColumn" text="Payment Hash" />
                                                         </columns>
                                                     </TableView>

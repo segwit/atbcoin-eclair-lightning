@@ -3,7 +3,7 @@ package fr.acinq.eclair.payment
 import akka.actor.FSM.{CurrentState, SubscribeTransitionCallBack, Transition}
 import akka.actor.Status.Failure
 import akka.testkit.{TestFSMRef, TestProbe}
-import fr.acinq.bitcoin.MilliSatoshi
+import fr.acinq.bitcoin.Satoshi
 import fr.acinq.eclair.Globals
 import fr.acinq.eclair.channel.Register.ForwardShortId
 import fr.acinq.eclair.crypto.Sphinx
@@ -145,7 +145,7 @@ class PaymentLifecycleSpec extends BaseRouterSpec {
     paymentFSM ! SubscribeTransitionCallBack(monitor.ref)
     val CurrentState(_, WAITING_FOR_REQUEST) = monitor.expectMsgClass(classOf[CurrentState[_]])
 
-    val request = SendPayment(142000L, "42" * 32, d)
+    val request = SendPayment(142L, "42" * 32, d)
     sender.send(paymentFSM, request)
     val Transition(_, WAITING_FOR_REQUEST, WAITING_FOR_ROUTE) = monitor.expectMsgClass(classOf[Transition[_]])
     val Transition(_, WAITING_FOR_ROUTE, WAITING_FOR_PAYMENT_COMPLETE) = monitor.expectMsgClass(classOf[Transition[_]])
@@ -153,7 +153,7 @@ class PaymentLifecycleSpec extends BaseRouterSpec {
     sender.send(paymentFSM, UpdateFulfillHtlc("00" * 32, 0, "42" * 32))
 
     sender.expectMsgType[PaymentSucceeded]
-    val PaymentSent(MilliSatoshi(request.amountMsat), feesPaid, request.paymentHash) = eventListener.expectMsgType[PaymentSent]
+    val PaymentSent(Satoshi(request.amountMsat), feesPaid, request.paymentHash) = eventListener.expectMsgType[PaymentSent]
     assert(feesPaid.amount > 0)
 
   }

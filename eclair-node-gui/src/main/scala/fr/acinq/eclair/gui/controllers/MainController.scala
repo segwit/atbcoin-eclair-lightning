@@ -290,13 +290,13 @@ class MainController(val handlers: Handlers, val hostServices: HostServices) ext
       override def onChanged(c: Change[_ <: PaymentRelayedRecord]) = updateTabHeader(paymentRelayedTab, "Relayed", paymentRelayedList)
     })
     paymentRelayedAmountColumn.setCellValueFactory(new Callback[CellDataFeatures[PaymentRelayedRecord, Number], ObservableValue[Number]]() {
-      def call(p: CellDataFeatures[PaymentRelayedRecord, Number]) = new SimpleLongProperty(p.getValue.event.amountIn.amount)
+      def call(p: CellDataFeatures[PaymentRelayedRecord, Number]) = new SimpleLongProperty(p.getValue.event.amountIn.amount / 100000000L)
     })
     paymentRelayedAmountColumn.setCellFactory(new Callback[TableColumn[PaymentRelayedRecord, Number], TableCell[PaymentRelayedRecord, Number]]() {
       def call(pn: TableColumn[PaymentRelayedRecord, Number]) = buildMoneyTableCell
     })
     paymentRelayedFeesColumn.setCellValueFactory(new Callback[CellDataFeatures[PaymentRelayedRecord, Number], ObservableValue[Number]]() {
-      def call(p: CellDataFeatures[PaymentRelayedRecord, Number]) = new SimpleLongProperty(p.getValue.event.amountIn.amount - p.getValue.event.amountOut.amount)
+      def call(p: CellDataFeatures[PaymentRelayedRecord, Number]) = new SimpleLongProperty((p.getValue.event.amountIn.amount - p.getValue.event.amountOut.amount))
     })
     paymentRelayedFeesColumn.setCellFactory(new Callback[TableColumn[PaymentRelayedRecord, Number], TableCell[PaymentRelayedRecord, Number]]() {
       def call(pn: TableColumn[PaymentRelayedRecord, Number]) = buildMoneyTableCell

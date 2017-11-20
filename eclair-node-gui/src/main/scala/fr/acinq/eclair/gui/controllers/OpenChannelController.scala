@@ -27,7 +27,7 @@ class OpenChannelController(val handlers: Handlers, val stage: Stage) extends Lo
     * https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#requirements
     */
   val maxFunding = 16777216000L
-  val maxPushMsat = 1000000L * maxFunding
+  val maxPushMsat = 4294967296L
 
   @FXML var host: TextField = _
   @FXML var hostError: Label = _
@@ -62,17 +62,23 @@ class OpenChannelController(val handlers: Handlers, val stage: Stage) extends Lo
           && GUIValidators.validate(fundingSatoshisError, "Funding must be greater than 0", fundingSatoshis.getText.toLong > 0)) {
           val rawFunding = fundingSatoshis.getText.toLong
           val smartFunding = unit.getValue match {
+            case "ATB" => Satoshi(rawFunding * 100000000L)
             case "milliATB" => Satoshi(rawFunding * 100000L)
             case "Satoshi" => Satoshi(rawFunding)
-            case "ATB" => Satoshi(rawFunding * 100000000L)
           }
-          if (GUIValidators.validate(fundingSatoshisError, "Funding must be 16 777 216 satoshis (~0.167 ATB) or less", smartFunding.toLong < maxFunding)) {
+          if (GUIValidators.validate(fundingSatoshisError, "Funding must be  167 ATB or less", smartFunding.toLong < maxFunding)) {
             if (!pushMsat.getText.isEmpty) {
               // pushMsat is optional, so we validate field only if it isn't empty
+              val pushValue = unit.getValue match{
+                case "ATB" => Satoshi(pushMsat.getText.toLong * 100000000L)
+                case "milliATB" => Satoshi(pushMsat.getText.toLong * 100000L)
+                case "Satoshi" => Satoshi(pushMsat.getText.toLong)
+              }
               if (GUIValidators.validate(pushMsat.getText, pushMsatError, "Push msat must be numeric", GUIValidators.amountRegex)
-                && GUIValidators.validate(pushMsatError, "Push msat must be 16 777 216 000 msat (~0.167 ATB) or less", pushMsat.getText.toLong <= maxPushMsat)) {
+                && GUIValidators.validate(pushMsatError, "Funding must be 42 ATB or less and should be less than channel amount. ", pushValue.amount <= maxPushMsat - 7 && pushValue.amount < smartFunding.toLong)) {
                 val channelFlags = if(publicChannel.isSelected) ChannelFlags.AnnounceChannel else ChannelFlags.Empty
-                handlers.open(host.getText, Some(NewChannel(smartFunding, MilliSatoshi(pushMsat.getText.toLong), Some(channelFlags))))
+
+                handlers.open(host.getText, Some(NewChannel(smartFunding, pushValue, Some(channelFlags))))
                 stage.close
               }
             } else {

@@ -12,7 +12,7 @@ import javafx.stage.Stage
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.google.zxing.{BarcodeFormat, EncodeHintType}
-import fr.acinq.bitcoin.MilliSatoshi
+import fr.acinq.bitcoin.Satoshi
 import fr.acinq.eclair.Setup
 import fr.acinq.eclair.gui.Handlers
 import fr.acinq.eclair.gui.utils.{ContextMenuUtils, GUIValidators}
@@ -59,9 +59,9 @@ class ReceivePaymentController(val handlers: Handlers, val stage: Stage) extends
             throw new NumberFormatException("incorrect amount")
         }
         val smartAmount = unit.getValue match {
-          case "milliATB" => MilliSatoshi(parsedInt.toLong * 100000000L + amountDec.toLong * 100000L)
-          case "Satoshi" => MilliSatoshi(parsedInt.toLong * 1000L + amountDec.toLong)
-          case "ATB" => MilliSatoshi(parsedInt.toLong * 100000000000L + amountDec.toLong * 100000000L)
+          case "ATB" => Satoshi(parsedInt.toLong * 100000000L + amountDec.toLong * 100000L)
+          case "milliATB" => Satoshi(parsedInt.toLong * 100000L + amountDec.toLong * 100L)
+          case "Satoshi" => Satoshi(parsedInt.toLong)
         }
         if (GUIValidators.validate(amountError, "Amount must be greater than 0", smartAmount.amount > 0)
           && GUIValidators.validate(amountError, f"Amount must be less than ${PaymentRequest.maxAmount.amount}%,d msat (~${PaymentRequest.maxAmount.amount / 1e11}%.3f ATB)", smartAmount < PaymentRequest.maxAmount)
