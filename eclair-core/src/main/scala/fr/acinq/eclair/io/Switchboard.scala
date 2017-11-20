@@ -56,7 +56,7 @@ class Switchboard(nodeParams: NodeParams, watcher: ActorRef, router: ActorRef, r
     case NewConnection(publicKey, _, _) if publicKey == nodeParams.privateKey.publicKey =>
       sender ! Status.Failure(new RuntimeException("cannot open connection with oneself"))
 
-    case NewConnection(publicKey, address, _) if !isOpenPort(address) =>
+    case NewConnection(_, address, _) if !isOpenPort(address) =>
       sender ! Status.Failure(new RuntimeException("cannot find lightning node with this ip and port"))
 
     case NewConnection(remoteNodeId, address, newChannel_opt) =>
