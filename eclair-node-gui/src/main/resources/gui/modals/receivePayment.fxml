@@ -23,7 +23,7 @@
                 <VBox alignment="TOP_RIGHT" GridPane.rowIndex="0">
                     <children>
                         <Label styleClass="text-strong" text="Amount to receive" />
-                        <Label styleClass="label-description" wrapText="true" textAlignment="RIGHT" text="Maximum of ~0.042 ATB" />
+                        <Label styleClass="label-description" wrapText="true" textAlignment="RIGHT" text="Maximum of ~42 ATB" />
                     </children>
                 </VBox>
                 <TextField fx:id="amount" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
