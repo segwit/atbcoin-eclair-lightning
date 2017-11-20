@@ -1,6 +1,5 @@
 package fr.acinq.eclair
 
-import java.io.File
 import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, ActorSystem, Props, SupervisorStrategy}
@@ -33,23 +32,6 @@ import scala.io.Source
   * Created by PM on 25/01/2016.
   */
 class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), actorSystem: ActorSystem = ActorSystem()) extends Logging {
-
-
-
-  def isOpenPort(Port:Int,address:String ="127.0.0.1",duration:Duration = 10 seconds):Int = {
-    val socketTimeout = 200
-    try {
-        val socket = new java.net.Socket()
-        socket.connect(new java.net.InetSocketAddress(address, Port),socketTimeout)
-        socket.close()
-        return 1
-      }catch {
-      case _:Throwable=>{
-        return 0
-      }
-    }
-  }
-
 
   def getCookieDir():String = {
     val cookiepath = chain match {
