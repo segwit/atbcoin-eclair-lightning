@@ -64,7 +64,8 @@ class ReceivePaymentController(val handlers: Handlers, val stage: Stage) extends
           case "Satoshi" => Satoshi(parsedInt.toLong)
         }
         if (GUIValidators.validate(amountError, "Amount must be greater than 0", smartAmount.amount > 0)
-          && GUIValidators.validate(amountError, f"Amount must be less than ${PaymentRequest.maxAmount.amount}%,d sat (~${PaymentRequest.maxAmount.amount / 100000000D}%.3f ATB)", smartAmount < PaymentRequest.maxAmount)
+          && GUIValidators.validate(amountError, f"Amount must be less than ${PaymentRequest.maxAmount.amount}%,d sat (~${PaymentRequest.maxAmount.amount / 100000000D}%.3f ATB)", smartAmount <= PaymentRequest.maxAmount)
+          && GUIValidators.validate(amountError, f"Amount must be more than ${PaymentRequest.minAmount.amount}%,d sat (~${PaymentRequest.minAmount.amount / 100000000D}%.3f ATB)", smartAmount >= PaymentRequest.minAmount)
           && GUIValidators.validate(amountError, "Description is too long, max 256 chars.", description.getText().size < 256)) {
           import scala.concurrent.ExecutionContext.Implicits.global
           handlers.receive(smartAmount, description.getText) onComplete {

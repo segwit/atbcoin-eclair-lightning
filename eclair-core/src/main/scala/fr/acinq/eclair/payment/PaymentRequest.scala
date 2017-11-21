@@ -103,6 +103,8 @@ object PaymentRequest {
 
   // https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#adding-an-htlc-update_add_htlc
   val maxAmount = Satoshi(4294967296L)
+  val minAmount = Satoshi(15000L)
+
 
   def apply(chainHash: BinaryData, amount: Option[MilliSatoshi], paymentHash: BinaryData, privateKey: PrivateKey,
             description: String, fallbackAddress: Option[String] = None, expirySeconds: Option[Long] = None,

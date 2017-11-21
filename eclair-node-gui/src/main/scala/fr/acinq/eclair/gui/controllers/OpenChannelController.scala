@@ -28,6 +28,8 @@ class OpenChannelController(val handlers: Handlers, val stage: Stage) extends Lo
     */
   val maxFunding = 16777216000L
   val maxPushMsat = 4294967296L
+  val minFunding = 20000L
+  val minPushMsat = 15000L
 
   @FXML var host: TextField = _
   @FXML var hostError: Label = _
@@ -66,7 +68,8 @@ class OpenChannelController(val handlers: Handlers, val stage: Stage) extends Lo
             case "milliATB" => Satoshi(rawFunding * 100000L)
             case "Satoshi" => Satoshi(rawFunding)
           }
-          if (GUIValidators.validate(fundingSatoshisError, "Funding must be  167 ATB or less", smartFunding.toLong < maxFunding)) {
+          if (GUIValidators.validate(fundingSatoshisError, "Funding must be  167 ATB or less", smartFunding.toLong < maxFunding)
+              && GUIValidators.validate(fundingSatoshisError, "Funding must be  20 000 sat or more", smartFunding.toLong >= minFunding)) {
             if (!pushMsat.getText.isEmpty) {
               // pushMsat is optional, so we validate field only if it isn't empty
               val pushValue = unit.getValue match{
@@ -75,7 +78,8 @@ class OpenChannelController(val handlers: Handlers, val stage: Stage) extends Lo
                 case "Satoshi" => Satoshi(pushMsat.getText.toLong)
               }
               if (GUIValidators.validate(pushMsat.getText, pushMsatError, "Push msat must be numeric", GUIValidators.amountRegex)
-                && GUIValidators.validate(pushMsatError, "Funding must be 42 ATB or less and should be less than channel amount. ", pushValue.amount <= maxPushMsat - 7 && pushValue.amount < smartFunding.toLong)) {
+                && GUIValidators.validate(pushMsatError, "Funding must be 42 ATB or less and should be less than channel amount. ", pushValue.amount <= maxPushMsat - 7 && pushValue.amount < smartFunding.toLong)
+                && GUIValidators.validate(pushMsatError, "Funding must be 15 000 sat or more. ", pushValue.amount >= minPushMsat )) {
                 val channelFlags = if(publicChannel.isSelected) ChannelFlags.AnnounceChannel else ChannelFlags.Empty
 
                 handlers.open(host.getText, Some(NewChannel(smartFunding, pushValue, Some(channelFlags))))
