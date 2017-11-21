@@ -8,7 +8,7 @@ import javafx.scene.input.KeyCode.{ENTER, TAB}
 import javafx.scene.input.KeyEvent
 import javafx.stage.Stage
 
-import fr.acinq.bitcoin.{BinaryData, millisatoshi2satoshi}
+import fr.acinq.bitcoin.{BinaryData, millisatoshi2btc, millisatoshi2satoshi}
 import fr.acinq.bitcoin.Crypto.PublicKey
 import fr.acinq.eclair.Setup
 import fr.acinq.eclair.gui.Handlers
@@ -50,7 +50,7 @@ class SendPaymentController(val handlers: Handlers, val stage: Stage) extends Lo
       def changed(observable: ObservableValue[_ <: String], oldValue: String, newValue: String) = {
         Try(PaymentRequest.read(paymentRequest.getText)) match {
           case Success(pr) =>
-            pr.amount.foreach(amount => amountField.setText((amount.amount / 100000000000L).toString)) //toATB
+            pr.amount.foreach(amount => amountField.setText((millisatoshi2satoshi(amount).amount) + " satoshi (" + (millisatoshi2btc(amount).amount) + " ATB)")) //toATB
             nodeIdField.setText(pr.nodeId.toString)
             hashField.setText(pr.paymentHash.toString)
           case Failure(f) =>
