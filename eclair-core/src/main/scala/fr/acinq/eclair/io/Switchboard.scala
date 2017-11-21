@@ -37,10 +37,27 @@ class Switchboard(nodeParams: NodeParams, watcher: ActorRef, router: ActorRef, r
 
   def receive: Receive = main(initialPeers, Map())
 
+  def isOpenPort(address: InetSocketAddress):Boolean = {
+    val socketTimeout = 200
+    try {
+      val socket = new java.net.Socket()
+      socket.connect(address, socketTimeout)
+      socket.close()
+      return true
+    }catch {
+      case _:Throwable=>{
+        return false
+      }
+    }
+  }
+
   def main(peers: Map[PublicKey, ActorRef], connections: Map[PublicKey, ActorRef]): Receive = {
 
     case NewConnection(publicKey, _, _) if publicKey == nodeParams.privateKey.publicKey =>
       sender ! Status.Failure(new RuntimeException("cannot open connection with oneself"))
+
+    case NewConnection(_, address, _) if !isOpenPort(address) =>
+      sender ! Status.Failure(new RuntimeException("cannot find lightning node with this ip and port"))
 
     case NewConnection(remoteNodeId, address, newChannel_opt) =>
       val connection = connections.get(remoteNodeId) match {
