@@ -36,12 +36,16 @@
         <Label styleClass="text-muted" text="hash" GridPane.halignment="RIGHT" GridPane.rowIndex="5"/>
         <TextField fx:id="hashField" focusTraversable="false" editable="false" styleClass="noteditable" text="N/A" GridPane.columnIndex="1" GridPane.rowIndex="5"/>
 
-        <Separator GridPane.columnSpan="2" GridPane.rowIndex="6"/>
+        <Label styleClass="text-muted" text="description" GridPane.halignment="RIGHT" GridPane.rowIndex="6"/>
+        <TextField fx:id="description" focusTraversable="false" editable="false" styleClass="noteditable" text="N/A" GridPane.columnIndex="1" GridPane.rowIndex="6"/>
+
+
+        <Separator GridPane.columnSpan="2" GridPane.rowIndex="7"/>
 
         <Button fx:id="sendButton" defaultButton="true" mnemonicParsing="false" onAction="#handleSend" text="Send"
-                GridPane.rowIndex="7"/>
+                GridPane.rowIndex="8"/>
         <Button cancelButton="true" mnemonicParsing="false" onAction="#handleClose" styleClass="cancel" text="Cancel"
-                GridPane.columnIndex="1" GridPane.halignment="RIGHT" GridPane.rowIndex="7"/>
+                GridPane.columnIndex="1" GridPane.halignment="RIGHT" GridPane.rowIndex="8"/>
     </children>
     <styleClass>
         <String fx:value="grid"/>

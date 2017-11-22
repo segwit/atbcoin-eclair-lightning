@@ -29,6 +29,7 @@ class SendPaymentController(val handlers: Handlers, val stage: Stage) extends Lo
   @FXML var nodeIdField: TextField = _
   @FXML var amountField: TextField = _
   @FXML var hashField: TextField = _
+  @FXML var description: TextField = _
   @FXML var sendButton: Button = _
 
   @FXML def initialize(): Unit = {
@@ -53,6 +54,11 @@ class SendPaymentController(val handlers: Handlers, val stage: Stage) extends Lo
             pr.amount.foreach(amount => amountField.setText((millisatoshi2satoshi(amount).amount) + " satoshi (" + (millisatoshi2btc(amount).amount) + " ATB)")) //toATB
             nodeIdField.setText(pr.nodeId.toString)
             hashField.setText(pr.paymentHash.toString)
+
+            val desc = pr.description.toString
+
+            description.setText(desc.substring(5,desc.size - 1))
+
           case Failure(f) =>
             GUIValidators.validate(paymentRequestError, "Please use a valid payment request", false)
             amountField.setText("0")
