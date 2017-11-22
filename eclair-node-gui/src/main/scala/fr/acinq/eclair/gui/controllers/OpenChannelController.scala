@@ -58,7 +58,7 @@ class OpenChannelController(val handlers: Handlers, val stage: Stage) extends Lo
     if (GUIValidators.validate(host.getText, hostError, "Please use a valid url (pubkey@host:port)", GUIValidators.hostRegex)) {
       if (simpleConnection.isSelected) {
         handlers.open(host.getText, None)
-        stage.close
+        //stage.close
       } else {
         if (GUIValidators.validate(fundingSatoshis.getText, fundingSatoshisError, "Funding must be numeric", GUIValidators.amountRegex)
           && GUIValidators.validate(fundingSatoshisError, "Funding must be greater than 0", fundingSatoshis.getText.toLong > 0)) {

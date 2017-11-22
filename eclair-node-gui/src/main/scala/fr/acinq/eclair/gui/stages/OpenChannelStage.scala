@@ -19,8 +19,8 @@ class OpenChannelStage(handlers: Handlers) extends Stage() {
   setTitle("Open a new channel")
   setMinWidth(550)
   setWidth(550)
-  setMinHeight(350)
-  setHeight(350)
+  setMinHeight(280)
+  setHeight(280)
 
   // get fxml/controller
   val openFXML = new FXMLLoader(getClass.getResource("/gui/modals/openChannel.fxml"))

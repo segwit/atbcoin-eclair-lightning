@@ -49,9 +49,9 @@ class Handlers(fKit: Future[Kit])(implicit ec: ExecutionContext = ExecutionConte
           pubkey = PublicKey(remoteNodeId)
           kit <- fKit
           conn <- kit.switchboard ? NewConnection(pubkey, address, channel)
-        } yield conn) onFailure {
-          case t =>
-            notification("Connection failed", s"$host:$port", NOTIFICATION_ERROR)
+        } yield conn) onComplete {
+          case Failure(ex) => notification("Connection failed", s"$host:$port", NOTIFICATION_ERROR)
+          case Success(ground) => notification("Connection success", s"$host:$port", NOTIFICATION_SUCCESS)
         }
       case _ => {}
     }
@@ -114,6 +114,6 @@ class Handlers(fKit: Future[Kit])(implicit ec: ExecutionContext = ExecutionConte
     * @param showAppName true if you want the notification title to be preceded by "Eclair - ". True by default
     */
   def notification (title: String, message: String, notificationType: NotificationType = NOTIFICATION_NONE, showAppName: Boolean = true) = {
-    notifsController.map(_.addNotification(if (showAppName) s"Eclair - $title" else title, message, notificationType))
+    notifsController.map(_.addNotification(if (showAppName) s"Lightning - $title" else title, message, notificationType))
   }
 }
