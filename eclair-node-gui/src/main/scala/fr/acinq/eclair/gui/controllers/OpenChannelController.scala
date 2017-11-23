@@ -38,7 +38,7 @@ class OpenChannelController(val handlers: Handlers, val stage: Stage) extends Lo
   @FXML var fundingSatoshisError: Label = _
   @FXML var pushMsat: TextField = _
   @FXML var pushMsatError: Label = _
-  @FXML var publicChannel: CheckBox = _
+//  @FXML var publicChannel: CheckBox = _
   @FXML var unit: ComboBox[String] = _
   @FXML var button: Button = _
 
@@ -80,9 +80,9 @@ class OpenChannelController(val handlers: Handlers, val stage: Stage) extends Lo
               if (GUIValidators.validate(pushMsat.getText, pushMsatError, "Push msat must be numeric", GUIValidators.amountRegex)
                 && GUIValidators.validate(pushMsatError, "Funding must be 42 ATB or less and should be less than channel amount. ", pushValue.amount <= maxPushMsat - 7 && pushValue.amount < smartFunding.toLong)
                 && GUIValidators.validate(pushMsatError, "Funding must be 15 000 sat or more. ", pushValue.amount >= minPushMsat )) {
-                val channelFlags = if(publicChannel.isSelected) ChannelFlags.AnnounceChannel else ChannelFlags.Empty
+//                val channelFlags = if(publicChannel.isSelected) ChannelFlags.AnnounceChannel else ChannelFlags.Empty
 
-                handlers.open(host.getText, Some(NewChannel(smartFunding, pushValue, Some(channelFlags))))
+                handlers.open(host.getText, Some(NewChannel(smartFunding, pushValue, Some(ChannelFlags.AnnounceChannel))))
                 stage.close
               }
             } else {
