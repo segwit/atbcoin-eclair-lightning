@@ -100,12 +100,12 @@
                                                                          minWidth="150.0" prefWidth="150.0"
                                                                          maxWidth="150.0" text="Date"/>
                                                             <TableColumn fx:id="paymentSentAmountColumn"
-                                                                         text="Amount (msat)"
+                                                                         text="Amount (sat)"
                                                                          styleClass="align-right" resizable="false"
                                                                          minWidth="150.0" prefWidth="150.0"
                                                                          maxWidth="150.0"/>
                                                             <TableColumn fx:id="paymentSentFeesColumn"
-                                                                         text="Fees Paid (msat)"
+                                                                         text="Fees Paid (sat)"
                                                                          styleClass="align-right" resizable="false"
                                                                          minWidth="150.0" prefWidth="150.0"
                                                                          maxWidth="150.0"/>
@@ -126,7 +126,7 @@
                                                                          prefWidth="150.0" maxWidth="150.0"
                                                                          text="Date"/>
                                                             <TableColumn fx:id="paymentReceivedAmountColumn"
-                                                                         text="Amount (msat)"
+                                                                         text="Amount (sat)"
                                                                          styleClass="align-right" resizable="false"
                                                                          minWidth="150.0" prefWidth="150.0"
                                                                          maxWidth="150.0"/>
@@ -147,12 +147,12 @@
                                                                          prefWidth="150.0" maxWidth="150.0"
                                                                          text="Date"/>
                                                             <TableColumn fx:id="paymentRelayedAmountColumn"
-                                                                         text="Amount (msat)"
+                                                                         text="Amount (sat)"
                                                                          styleClass="align-right" resizable="false"
                                                                          minWidth="150.0" prefWidth="150.0"
                                                                          maxWidth="150.0"/>
                                                             <TableColumn fx:id="paymentRelayedFeesColumn"
-                                                                         text="Fees Earned (msat)"
+                                                                         text="Fees Earned (sat)"
                                                                          styleClass="align-right" resizable="false"
                                                                          minWidth="150.0" prefWidth="150.0"
                                                                          maxWidth="150.0"/>
@@ -246,11 +246,7 @@
                                           text="Export Graph to .dot"/>
                             </items>
                         </Menu>
-                        <Menu mnemonicParsing="false" text="Help">
-                            <items>
-                                <MenuItem mnemonicParsing="false" onAction="#handleOpenAbout" text="About Eclair..."/>
-                            </items>
-                        </Menu>
+  
                     </menus>
                 </MenuBar>
             </top>

@@ -463,7 +463,7 @@ class MainController(val handlers: Handlers, val hostServices: HostServices) ext
   }
 
   def showBlockerModal(backendName: String) = {
-    blockerDialogTitleEngineName.setText(backendName)
+    blockerDialogTitleEngineName.setText("ATBCoin Core")
     val fadeTransition = new FadeTransition(Duration.millis(300))
     fadeTransition.setFromValue(0)
     fadeTransition.setToValue(1)

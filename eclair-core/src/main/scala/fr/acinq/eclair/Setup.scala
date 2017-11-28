@@ -28,6 +28,7 @@ import grizzled.slf4j.Logging
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
+import scala.io.Source
 
 /**
   * Created by PM on 25/01/2016.
@@ -66,6 +67,14 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
   var atbdir = config.getString("bitcoind.atbdir")
   val(user, pass) = getRPCUserPass
   var atbVersion:String = ""
+  var rpcport = config.getInt("bitcoind.rpcport")
+  if(rpcport == 0){
+    rpcport = chain match {
+      case "main" => 8332
+      case _=> 18332
+    }
+  }
+
 
   // early checks
   DBCompatChecker.checkDBCompatibility(nodeParams)
@@ -87,10 +96,10 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
   val bitcoin = nodeParams.watcherType match {
     case BITCOIND =>
       val bitcoinClient = new ExtendedBitcoinClient(new BitcoinJsonRPCClient(
-        user = config.getString("bitcoind.rpcuser"),
-        password = config.getString("bitcoind.rpcpassword"),
+        user = user,
+        password = pass,
         host = config.getString("bitcoind.host"),
-        port = config.getInt("bitcoind.rpcport")))
+        port = rpcport))
       val future = for {
         json <- bitcoinClient.rpcClient.invoke("getblockchaininfo").recover { case _ => throw BitcoinRPCConnectionException }
         progress = (json \ "verificationprogress").extract[Double]
@@ -101,6 +110,10 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
     val (progress, chainHash, bitcoinVersion) = Await.result(future, 10 seconds)
     assert(chainHash == nodeParams.chainHash, s" chainHash mismatch (conf=${nodeParams.chainHash} != atbcoin=$chainHash)")
     assert(progress > 0.99, "atbcoin should be synchronized")
+
+      atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 3, bitcoinVersion.length() - 2)
+      atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 6, bitcoinVersion.length() - 5) + "." + atbVersion
+      atbVersion = bitcoinVersion.substring(0, bitcoinVersion.length() - 6) +  "." + atbVersion
 
       Bitcoind(bitcoinClient)
     case BITCOINJ =>
@@ -146,6 +159,7 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
         system.eventStream.publish(CurrentFeerates(Globals.feeratesPerKw.get))
         logger.info(s"current feeratesPerByte=${Globals.feeratesPerByte.get()}")
     })
+
 
     val watcher = bitcoin match {
       case Bitcoind(bitcoinClient) =>
