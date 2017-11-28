@@ -77,7 +77,7 @@ trait Service extends Logging {
               import kit._
               val f_res: Future[AnyRef] = req match {
                 case JsonRPCBody(_, _, "getinfo", _) => getInfoResponse
-                case JsonRPCBody(_, _, "connect", JString(host) :: JInt(port) :: JString(nodeId) :: Nil) =>
+                case JsonRPCBody(_, _, "connect", JString(nodeId) :: JString(host) :: JInt(port) :: Nil) =>
                   (switchboard ? NewConnection(PublicKey(nodeId), new InetSocketAddress(host, port.toInt), None)).mapTo[String]
                 case JsonRPCBody(_, _, "open", JString(nodeId) :: JString(host) :: JInt(port) :: JInt(fundingSatoshi) :: JInt(pushMsat) :: options) =>
                   val channelFlags = options match {
@@ -95,7 +95,7 @@ trait Service extends Logging {
                   (router ? 'nodes).mapTo[Iterable[NodeAnnouncement]].map(_.map(_.nodeId))
                 case JsonRPCBody(_, _, "allchannels", _) =>
                   (router ? 'channels).mapTo[Iterable[ChannelAnnouncement]].map(_.map(c => ChannelInfo(c.shortChannelId.toHexString, c.nodeId1, c.nodeId2)))
-                case JsonRPCBody(_,_, "receive", JInt(amountMsat) :: JString(description) :: Nil) =>
+                case JsonRPCBody(_, _, "receive", JInt(amountMsat) :: JString(description) :: Nil) =>
                   (paymentHandler ? ReceivePayment(MilliSatoshi(amountMsat.toLong), description)).mapTo[PaymentRequest].map(PaymentRequest.write)
                 case JsonRPCBody(_, _, "send", JInt(amountMsat) :: JString(paymentHash) :: JString(nodeId) :: Nil) =>
                   (paymentInitiator ? SendPayment(amountMsat.toLong, paymentHash, PublicKey(nodeId))).mapTo[PaymentResult]
@@ -120,7 +120,7 @@ trait Service extends Logging {
                   getChannel(channelId).flatMap(_ ? CMD_CLOSE(scriptPubKey = None)).mapTo[String]
                 case JsonRPCBody(_, _, "help", _) =>
                   Future.successful(List(
-                    "connect (host, port, nodeId): connect to another lightning node through a secure connection",
+                    "connect (nodeId, host, port): connect to another lightning node through a secure connection",
                     "open (nodeId, host, port, fundingSatoshi, pushMsat, channelFlags = 0x01): open a channel with another lightning node",
                     "peers: list existing local peers",
                     "channels: list existing local channels",

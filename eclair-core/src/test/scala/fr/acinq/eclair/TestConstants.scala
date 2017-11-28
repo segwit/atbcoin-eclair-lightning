@@ -5,7 +5,7 @@ import java.sql.DriverManager
 
 import fr.acinq.bitcoin.Crypto.PrivateKey
 import fr.acinq.bitcoin.{BinaryData, Block, DeterministicWallet, Script}
-import fr.acinq.eclair.TestConstants.Alice.sqlite
+import fr.acinq.eclair.NodeParams.BITCOIND
 import fr.acinq.eclair.db.sqlite.{SqliteChannelsDb, SqliteNetworkDb, SqlitePeersDb, SqlitePreimagesDb}
 import fr.acinq.eclair.io.Peer
 
@@ -23,7 +23,9 @@ object TestConstants {
     val seed = BinaryData("01" * 32)
     val master = DeterministicWallet.generate(seed)
     val extendedPrivateKey = DeterministicWallet.derivePrivateKey(master, DeterministicWallet.hardened(46) :: DeterministicWallet.hardened(0) :: Nil)
+
     def sqlite = DriverManager.getConnection("jdbc:sqlite::memory:")
+
     def nodeParams = NodeParams(
       extendedPrivateKey = extendedPrivateKey,
       privateKey = extendedPrivateKey.privateKey,
@@ -57,8 +59,10 @@ object TestConstants {
       chainHash = Block.RegtestGenesisBlock.hash,
       channelFlags = 1,
       channelExcludeDuration = 5 seconds,
-      spv = false)
+      watcherType = BITCOIND)
+
     def id = nodeParams.privateKey.publicKey
+
     def channelParams = Peer.makeChannelParams(
       nodeParams = nodeParams,
       defaultFinalScriptPubKey = Script.write(Script.pay2wpkh(PrivateKey(Array.fill[Byte](32)(4), compressed = true).publicKey)),
@@ -72,7 +76,9 @@ object TestConstants {
     val seed = BinaryData("02" * 32)
     val master = DeterministicWallet.generate(seed)
     val extendedPrivateKey = DeterministicWallet.derivePrivateKey(master, DeterministicWallet.hardened(46) :: DeterministicWallet.hardened(0) :: Nil)
+
     def sqlite = DriverManager.getConnection("jdbc:sqlite::memory:")
+
     def nodeParams = NodeParams(
       extendedPrivateKey = extendedPrivateKey,
       privateKey = extendedPrivateKey.privateKey,
@@ -106,8 +112,10 @@ object TestConstants {
       chainHash = Block.RegtestGenesisBlock.hash,
       channelFlags = 1,
       channelExcludeDuration = 5 seconds,
-      spv = false)
+      watcherType = BITCOIND)
+
     def id = nodeParams.privateKey.publicKey
+
     def channelParams = Peer.makeChannelParams(
       nodeParams = nodeParams,
       defaultFinalScriptPubKey = Script.write(Script.pay2wpkh(PrivateKey(Array.fill[Byte](32)(5), compressed = true).publicKey)),

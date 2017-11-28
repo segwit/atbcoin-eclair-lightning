@@ -7,6 +7,7 @@ import fr.acinq.bitcoin.{BinaryData, Crypto, Satoshi, ScriptFlags, Transaction}
 import fr.acinq.eclair.TestConstants.Bob
 import fr.acinq.eclair.UInt64.Conversions._
 import fr.acinq.eclair.blockchain._
+import fr.acinq.eclair.blockchain.fee.FeeratesPerKw
 import fr.acinq.eclair.channel.states.StateTestsHelperMethods
 import fr.acinq.eclair.channel.{Data, State, _}
 import fr.acinq.eclair.payment._
@@ -209,7 +210,7 @@ class NormalStateSpec extends TestkitBaseClass with StateTestsHelperMethods {
   test("recv CMD_ADD_HTLC (while waiting for a revocation)") { case (alice, _, alice2bob, _, _, _, relayer) =>
     within(30 seconds) {
       val sender = TestProbe()
-      val add1 = CMD_ADD_HTLC(TestConstants.fundingSatoshis * 2/3 * 1000, "11" * 32, 400144)
+      val add1 = CMD_ADD_HTLC(TestConstants.fundingSatoshis * 2 / 3 * 1000, "11" * 32, 400144)
       sender.send(alice, add1)
       sender.expectMsg("ok")
       alice2bob.expectMsgType[UpdateAddHtlc]
@@ -217,7 +218,7 @@ class NormalStateSpec extends TestkitBaseClass with StateTestsHelperMethods {
       sender.expectMsg("ok")
       alice2bob.expectMsgType[CommitSig]
       // this is over channel-capacity
-      val add2 = CMD_ADD_HTLC(TestConstants.fundingSatoshis * 2/3 * 1000, "22" * 32, 400144)
+      val add2 = CMD_ADD_HTLC(TestConstants.fundingSatoshis * 2 / 3 * 1000, "22" * 32, 400144)
       sender.send(alice, add2)
       //sender.expectMsgType[Failure]
       relayer.expectMsgType[ForwardLocalFail]
@@ -1078,13 +1079,13 @@ class NormalStateSpec extends TestkitBaseClass with StateTestsHelperMethods {
       val sender = TestProbe()
       val fee = UpdateFee("00" * 32, 100000000)
       // we first update the global variable so that we don't trigger a 'fee too different' error
-      Globals.feeratePerKw.set(fee.feeratePerKw)
+      Globals.feeratesPerKw.set(FeeratesPerKw.single(fee.feeratePerKw))
       sender.send(bob, fee)
       val error = bob2alice.expectMsgType[Error]
       assert(new String(error.data) === CannotAffordFees(channelId(bob), missingSatoshis = 71620000L, reserveSatoshis = 20000L, feesSatoshis = 72400000L).getMessage)
       awaitCond(bob.stateName == CLOSING)
-      bob2blockchain.expectMsg(PublishAsap(tx))
-      bob2blockchain.expectMsgType[PublishAsap]
+      bob2blockchain.expectMsg(PublishAsap(tx)) // commit tx
+      //bob2blockchain.expectMsgType[PublishAsap] // main delayed (removed because of the high fees)
       bob2blockchain.expectMsgType[WatchConfirmed]
     }
   }
@@ -1355,16 +1356,16 @@ class NormalStateSpec extends TestkitBaseClass with StateTestsHelperMethods {
     within(30 seconds) {
       val sender = TestProbe()
       val initialState = alice.stateData.asInstanceOf[DATA_NORMAL]
-      val event = CurrentFeerate(20000)
+      val event = CurrentFeerates(FeeratesPerKw.single(20000))
       sender.send(alice, event)
-      alice2bob.expectMsg(UpdateFee(initialState.commitments.channelId, event.feeratePerKw))
+      alice2bob.expectMsg(UpdateFee(initialState.commitments.channelId, event.feeratesPerKw.block_1))
     }
   }
 
   test("recv CurrentFeerate (when funder, doesn't trigger an UpdateFee)") { case (alice, _, alice2bob, _, _, _, _) =>
     within(30 seconds) {
       val sender = TestProbe()
-      val event = CurrentFeerate(10010)
+      val event = CurrentFeerates(FeeratesPerKw.single(10010))
       sender.send(alice, event)
       alice2bob.expectNoMsg(500 millis)
     }
@@ -1373,7 +1374,7 @@ class NormalStateSpec extends TestkitBaseClass with StateTestsHelperMethods {
   test("recv CurrentFeerate (when fundee, commit-fee/network-fee are close)") { case (_, bob, _, bob2alice, _, _, _) =>
     within(30 seconds) {
       val sender = TestProbe()
-      val event = CurrentFeerate(11000)
+      val event = CurrentFeerates(FeeratesPerKw.single(11000))
       sender.send(bob, event)
       bob2alice.expectNoMsg(500 millis)
     }
@@ -1382,7 +1383,7 @@ class NormalStateSpec extends TestkitBaseClass with StateTestsHelperMethods {
   test("recv CurrentFeerate (when fundee, commit-fee/network-fee are very different)") { case (_, bob, _, bob2alice, _, bob2blockchain, _) =>
     within(30 seconds) {
       val sender = TestProbe()
-      val event = CurrentFeerate(100)
+      val event = CurrentFeerates(FeeratesPerKw.single(100))
       sender.send(bob, event)
       bob2alice.expectMsgType[Error]
       bob2blockchain.expectMsgType[PublishAsap] // commit tx
@@ -1396,7 +1397,7 @@ class NormalStateSpec extends TestkitBaseClass with StateTestsHelperMethods {
     within(30 seconds) {
       val sender = TestProbe()
       // this happens when in regtest mode
-      val event = CurrentFeerate(-1)
+      val event = CurrentFeerates(FeeratesPerKw.single(-1))
       sender.send(alice, event)
       alice2bob.expectNoMsg(500 millis)
     }
@@ -1639,27 +1640,46 @@ class NormalStateSpec extends TestkitBaseClass with StateTestsHelperMethods {
     }
   }
 
-  test("recv BITCOIN_FUNDING_DEEPLYBURIED", Tag("channels_public")) { case (alice, bob, alice2bob, bob2alice, alice2blockchain, _, _) =>
+  test("recv BITCOIN_FUNDING_DEEPLYBURIED", Tag("channels_public")) { case (alice, _, alice2bob, _, _, _, _) =>
     within(30 seconds) {
       val initialState = alice.stateData.asInstanceOf[DATA_NORMAL]
       val sender = TestProbe()
       sender.send(alice, WatchEventConfirmed(BITCOIN_FUNDING_DEEPLYBURIED, 42, 10))
-      val ann = alice2bob.expectMsgType[AnnouncementSignatures]
-      assert(alice.stateData.asInstanceOf[DATA_NORMAL] === initialState.copy(localAnnouncementSignatures = Some(ann)))
+      val annSigs = alice2bob.expectMsgType[AnnouncementSignatures]
+      assert(alice.stateData.asInstanceOf[DATA_NORMAL] === initialState.copy(localAnnouncementSignatures = Some(annSigs)))
     }
   }
 
-  test("recv AnnouncementSignatures", Tag("channels_public")) { case (alice, bob, alice2bob, bob2alice, alice2blockchain, _, _) =>
+  test("recv AnnouncementSignatures", Tag("channels_public")) { case (alice, bob, alice2bob, bob2alice, _, _, _) =>
     within(30 seconds) {
       val initialState = alice.stateData.asInstanceOf[DATA_NORMAL]
       val sender = TestProbe()
       sender.send(alice, WatchEventConfirmed(BITCOIN_FUNDING_DEEPLYBURIED, 42, 10))
-      val annA = alice2bob.expectMsgType[AnnouncementSignatures]
+      val annSigsA = alice2bob.expectMsgType[AnnouncementSignatures]
       sender.send(bob, WatchEventConfirmed(BITCOIN_FUNDING_DEEPLYBURIED, 42, 10))
-      val annB = bob2alice.expectMsgType[AnnouncementSignatures]
+      val annSigsB = bob2alice.expectMsgType[AnnouncementSignatures]
       // actual test starts here
       bob2alice.forward(alice)
-      awaitCond(alice.stateData.asInstanceOf[DATA_NORMAL] == initialState.copy(shortChannelId = Some(annB.shortChannelId)))
+      awaitCond(alice.stateData.asInstanceOf[DATA_NORMAL] == initialState.copy(shortChannelId = Some(annSigsB.shortChannelId), localAnnouncementSignatures = Some(annSigsA)))
+    }
+  }
+
+  test("recv AnnouncementSignatures (re-send)", Tag("channels_public")) { case (alice, bob, alice2bob, bob2alice, _, _, _) =>
+    within(30 seconds) {
+      val initialState = alice.stateData.asInstanceOf[DATA_NORMAL]
+      val sender = TestProbe()
+      sender.send(alice, WatchEventConfirmed(BITCOIN_FUNDING_DEEPLYBURIED, 42, 10))
+      val annSigsA = alice2bob.expectMsgType[AnnouncementSignatures]
+      sender.send(bob, WatchEventConfirmed(BITCOIN_FUNDING_DEEPLYBURIED, 42, 10))
+      val annSigsB = bob2alice.expectMsgType[AnnouncementSignatures]
+      bob2alice.forward(alice)
+      awaitCond(alice.stateData.asInstanceOf[DATA_NORMAL] == initialState.copy(shortChannelId = Some(annSigsB.shortChannelId), localAnnouncementSignatures = Some(annSigsA)))
+
+      // actual test starts here
+      // simulate bob re-sending its sigs
+      bob2alice.send(alice, annSigsA)
+      // alice re-sends her sigs
+      alice2bob.expectMsg(annSigsA)
     }
   }
 

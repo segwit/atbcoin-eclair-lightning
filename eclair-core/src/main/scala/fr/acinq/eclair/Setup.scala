@@ -1,5 +1,6 @@
 package fr.acinq.eclair
 
+import java.io.File
 import java.net.InetSocketAddress
 
 import akka.actor.{ActorRef, ActorSystem, Props, SupervisorStrategy}
@@ -8,14 +9,16 @@ import akka.pattern.after
 import akka.stream.{ActorMaterializer, BindFailedException}
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
-import fr.acinq.bitcoin.BinaryData
+import fr.acinq.bitcoin.{BinaryData, Block}
+import fr.acinq.eclair.NodeParams.{BITCOIND, BITCOINJ, ELECTRUM}
 import fr.acinq.eclair.api.{GetInfoResponse, Service}
-import fr.acinq.eclair.blockchain._
-import fr.acinq.eclair.blockchain.fee.{BitpayInsightFeeProvider, ConstantFeeProvider}
-import fr.acinq.eclair.blockchain.rpc.{BitcoinJsonRPCClient, ExtendedBitcoinClient}
-import fr.acinq.eclair.blockchain.spv.BitcoinjKit
-import fr.acinq.eclair.blockchain.wallet.{BitcoinCoreWallet, BitcoinjWallet, EclairWallet}
-import fr.acinq.eclair.blockchain.zmq.ZMQActor
+import fr.acinq.eclair.blockchain.bitcoind.rpc.{BitcoinJsonRPCClient, ExtendedBitcoinClient}
+import fr.acinq.eclair.blockchain.bitcoind.zmq.ZMQActor
+import fr.acinq.eclair.blockchain.bitcoind.{BitcoinCoreWallet, ZmqWatcher}
+import fr.acinq.eclair.blockchain.bitcoinj.{BitcoinjKit, BitcoinjWallet, BitcoinjWatcher}
+import fr.acinq.eclair.blockchain.electrum.{ElectrumClient, ElectrumEclairWallet, ElectrumWallet, ElectrumWatcher}
+import fr.acinq.eclair.blockchain.fee.{ConstantFeeProvider, _}
+import fr.acinq.eclair.blockchain.{EclairWallet, _}
 import fr.acinq.eclair.channel.Register
 import fr.acinq.eclair.io.{Server, Switchboard}
 import fr.acinq.eclair.payment._
@@ -25,9 +28,7 @@ import grizzled.slf4j.Logging
 import scala.collection.JavaConversions._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
-import sys.process._
-import java.io.File
-import scala.io.Source
+
 /**
   * Created by PM on 25/01/2016.
   */
@@ -61,7 +62,6 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
 
   val config = NodeParams.loadConfiguration(datadir, overrideDefaults)
   val nodeParams = NodeParams.makeNodeParams(datadir, config)
-  val spv = config.getBoolean("spv")
   val chain = config.getString("chain")
   var atbdir = config.getString("bitcoind.atbdir")
   val(user, pass) = getRPCUserPass
@@ -84,31 +84,14 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
   implicit val formats = org.json4s.DefaultFormats
   implicit val ec = ExecutionContext.Implicits.global
 
-  val bitcoin = if (spv) {
-    logger.warn("EXPERIMENTAL SPV MODE ENABLED!!!")
-    val staticPeers = config.getConfigList("bitcoinj.static-peers").map(c => new InetSocketAddress(c.getString("host"), c.getInt("port"))).toList
-    logger.info(s"using staticPeers=$staticPeers")
-    val bitcoinjKit = new BitcoinjKit(chain, datadir, staticPeers)
-    bitcoinjKit.startAsync()
-    Await.ready(bitcoinjKit.initialized, 10 seconds)
-    Left(bitcoinjKit)
-  } else {
-    var rpcport = config.getInt("bitcoind.rpcport")
-    if(rpcport == 0){
-      rpcport = chain match {
-        case "main" => 8332
-        case _=> 18332
-      }
-    }
-
-    val bitcoinClient = new ExtendedBitcoinClient(new BitcoinJsonRPCClient(
-      user = user,
-      password = pass,
-      host = config.getString("bitcoind.host"),
-      port = rpcport)
-    )
-
-    val future = for {
+  val bitcoin = nodeParams.watcherType match {
+    case BITCOIND =>
+      val bitcoinClient = new ExtendedBitcoinClient(new BitcoinJsonRPCClient(
+        user = config.getString("bitcoind.rpcuser"),
+        password = config.getString("bitcoind.rpcpassword"),
+        host = config.getString("bitcoind.host"),
+        port = config.getInt("bitcoind.rpcport")))
+      val future = for {
         json <- bitcoinClient.rpcClient.invoke("getblockchaininfo").recover { case _ => throw BitcoinRPCConnectionException }
         progress = (json \ "verificationprogress").extract[Double]
         chainHash <- bitcoinClient.rpcClient.invoke("getblockhash", 0).map(_.extract[String]).map(BinaryData(_)).map(x => BinaryData(x.reverse))
@@ -119,12 +102,25 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
     assert(chainHash == nodeParams.chainHash, s" chainHash mismatch (conf=${nodeParams.chainHash} != atbcoin=$chainHash)")
     assert(progress > 0.99, "atbcoin should be synchronized")
 
-    atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 4, bitcoinVersion.length() - 2)
-    atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 6, bitcoinVersion.length() - 4) + "." + atbVersion
-    atbVersion = bitcoinVersion.substring(0, bitcoinVersion.length() - 6) +  "." + atbVersion
-    atbVersion = atbVersion.replace(".0", ".")
-
-    Right(bitcoinClient)
+      Bitcoind(bitcoinClient)
+    case BITCOINJ =>
+      logger.warn("EXPERIMENTAL BITCOINJ MODE ENABLED!!!")
+      val staticPeers = config.getConfigList("bitcoinj.static-peers").map(c => new InetSocketAddress(c.getString("host"), c.getInt("port"))).toList
+      logger.info(s"using staticPeers=$staticPeers")
+      val bitcoinjKit = new BitcoinjKit(chain, datadir, staticPeers)
+      bitcoinjKit.startAsync()
+      Await.ready(bitcoinjKit.initialized, 10 seconds)
+      Bitcoinj(bitcoinjKit)
+    case ELECTRUM =>
+      logger.warn("EXPERIMENTAL ELECTRUM MODE ENABLED!!!")
+      val addressesFile = chain match {
+        case "test" => "/electrum/servers_testnet.json"
+        case "regtest" => "/electrum/servers_regtest.json"
+      }
+      val stream = classOf[Setup].getResourceAsStream(addressesFile)
+      val addresses = ElectrumClient.readServerAddresses(stream)
+      val electrumClient = system.actorOf(SimpleSupervisor.props(Props(new ElectrumClient(addresses)), "electrum-client", SupervisorStrategy.Resume))
+      Electrum(electrumClient)
   }
 
 
@@ -134,32 +130,42 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
     val zmqConnected = Promise[Boolean]()
     val tcpBound = Promise[Unit]()
 
-    val defaultFeeratePerKb = config.getLong("default-feerate-per-kb")
-    Globals.feeratePerKw.set(feerateKb2Kw(defaultFeeratePerKb))
-    logger.info(s"initial feeratePerKw=${Globals.feeratePerKw.get()}")
-    val feeProvider = chain match {
-      case "regtest" => new ConstantFeeProvider(defaultFeeratePerKb)
-      case _ => new BitpayInsightFeeProvider()
+    val defaultFeerates = FeeratesPerByte(block_1 = config.getLong("default-feerates.delay-blocks.1"), blocks_2 = config.getLong("default-feerates.delay-blocks.2"), blocks_6 = config.getLong("default-feerates.delay-blocks.6"), blocks_12 = config.getLong("default-feerates.delay-blocks.12"), blocks_36 = config.getLong("default-feerates.delay-blocks.36"), blocks_72 = config.getLong("default-feerates.delay-blocks.72"))
+    Globals.feeratesPerByte.set(defaultFeerates)
+    Globals.feeratesPerKw.set(FeeratesPerKw(defaultFeerates))
+    logger.info(s"initial feeratesPerByte=${Globals.feeratesPerByte.get()}")
+    val feeProvider = (chain, bitcoin) match {
+      case ("regtest", _) => new ConstantFeeProvider(defaultFeerates)
+      case (_, Bitcoind(client)) => new FallbackFeeProvider(new BitgoFeeProvider() :: new EarnDotComFeeProvider() :: new BitcoinCoreFeeProvider(client.rpcClient, defaultFeerates) :: new ConstantFeeProvider(defaultFeerates) :: Nil) // order matters!
+      case _ => new FallbackFeeProvider(new BitgoFeeProvider() :: new EarnDotComFeeProvider() :: new ConstantFeeProvider(defaultFeerates) :: Nil) // order matters!
     }
-    system.scheduler.schedule(0 seconds, 10 minutes)(feeProvider.getFeeratePerKB.map {
-      case feeratePerKB =>
-        Globals.feeratePerKw.set(feerateKb2Kw(feeratePerKB))
-        system.eventStream.publish(CurrentFeerate(Globals.feeratePerKw.get()))
-        logger.info(s"current feeratePerKw=${Globals.feeratePerKw.get()}")
+    system.scheduler.schedule(0 seconds, 10 minutes)(feeProvider.getFeerates.map {
+      case feerates: FeeratesPerByte =>
+        Globals.feeratesPerByte.set(feerates)
+        Globals.feeratesPerKw.set(FeeratesPerKw(defaultFeerates))
+        system.eventStream.publish(CurrentFeerates(Globals.feeratesPerKw.get))
+        logger.info(s"current feeratesPerByte=${Globals.feeratesPerByte.get()}")
     })
 
     val watcher = bitcoin match {
-      case Left(bitcoinj) =>
-        zmqConnected.success(true)
-        system.actorOf(SimpleSupervisor.props(SpvWatcher.props(bitcoinj), "watcher", SupervisorStrategy.Resume))
-      case Right(bitcoinClient) =>
+      case Bitcoind(bitcoinClient) =>
         system.actorOf(SimpleSupervisor.props(Props(new ZMQActor(config.getString("bitcoind.zmq"), Some(zmqConnected))), "zmq", SupervisorStrategy.Restart))
         system.actorOf(SimpleSupervisor.props(ZmqWatcher.props(bitcoinClient), "watcher", SupervisorStrategy.Resume))
+      case Bitcoinj(bitcoinj) =>
+        zmqConnected.success(true)
+        system.actorOf(SimpleSupervisor.props(BitcoinjWatcher.props(bitcoinj), "watcher", SupervisorStrategy.Resume))
+      case Electrum(electrumClient) =>
+        zmqConnected.success(true)
+        system.actorOf(SimpleSupervisor.props(Props(new ElectrumWatcher(electrumClient)), "watcher", SupervisorStrategy.Resume))
     }
 
     val wallet = bitcoin match {
-      case Left(bitcoinj) => new BitcoinjWallet(bitcoinj.initialized.map(_ => bitcoinj.wallet()))
-      case Right(bitcoinClient) => new BitcoinCoreWallet(bitcoinClient.rpcClient, watcher)
+      case Bitcoind(bitcoinClient) => new BitcoinCoreWallet(bitcoinClient.rpcClient)
+      case Bitcoinj(bitcoinj) => new BitcoinjWallet(bitcoinj.initialized.map(_ => bitcoinj.wallet()))
+      case Electrum(electrumClient) =>
+        val electrumSeedPath = new File(datadir, "electrum_seed.dat")
+        val electrumWallet = system.actorOf(ElectrumWallet.props(electrumSeedPath, electrumClient, ElectrumWallet.WalletParameters(Block.RegtestGenesisBlock.hash, allowSpendUnconfirmed = true)), "electrum-wallet")
+        new ElectrumEclairWallet(electrumWallet)
     }
     wallet.getFinalAddress.map {
       case address => logger.info(s"initial wallet address=$address")
@@ -212,6 +218,14 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
   }
 
 }
+
+
+// @formatter:off
+sealed trait Bitcoin
+case class Bitcoind(extendedBitcoinClient: ExtendedBitcoinClient) extends Bitcoin
+case class Bitcoinj(bitcoinjKit: BitcoinjKit) extends Bitcoin
+case class Electrum(electrumClient: ActorRef) extends Bitcoin
+// @formatter:on
 
 case class Kit(nodeParams: NodeParams,
                system: ActorSystem,

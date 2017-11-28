@@ -6,8 +6,8 @@ import java.net.{Inet4Address, Inet6Address, InetAddress, InetSocketAddress}
 import fr.acinq.bitcoin.Crypto.{Point, PrivateKey, PublicKey, Scalar}
 import fr.acinq.bitcoin.{BinaryData, Crypto}
 import fr.acinq.eclair.crypto.{Generators, Sphinx}
-import fr.acinq.eclair.{UInt64, wire}
 import fr.acinq.eclair.wire.FixedSizeStrictCodec.bytesStrict
+import fr.acinq.eclair.{UInt64, wire}
 import scodec.bits.{BitVector, ByteVector}
 import scodec.codecs._
 import scodec.{Attempt, Codec, Err}
@@ -134,6 +134,7 @@ object LightningMessageCodecs {
       ("revocationBasepoint" | point) ::
       ("paymentBasepoint" | point) ::
       ("delayedPaymentBasepoint" | point) ::
+      ("htlcBasepoint" | point) ::
       ("firstPerCommitmentPoint" | point) ::
       ("channelFlags" | byte)).as[OpenChannel]
 
@@ -150,6 +151,7 @@ object LightningMessageCodecs {
       ("revocationBasepoint" | point) ::
       ("paymentBasepoint" | point) ::
       ("delayedPaymentBasepoint" | point) ::
+      ("htlcBasepoint" | point) ::
       ("firstPerCommitmentPoint" | point)).as[AcceptChannel]
 
   val fundingCreatedCodec: Codec[FundingCreated] = (

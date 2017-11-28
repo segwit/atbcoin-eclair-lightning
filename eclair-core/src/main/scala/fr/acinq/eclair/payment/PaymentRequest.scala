@@ -265,12 +265,12 @@ object PaymentRequest {
   case class ExpiryTag(seconds: Long) extends Tag {
     override def toInt5s = {
       val ints = writeUnsignedLong(seconds)
-      Bech32.map('x') +: (writeSize(ints.size) ++ ints)    }
+      Bech32.map('x') +: (writeSize(ints.size) ++ ints)
+    }
   }
 
   /**
     * Min final CLTV expiry
-    *
     *
     * @param blocks min final cltv expiry, in blocks
     */
@@ -279,6 +279,10 @@ object PaymentRequest {
       val ints = writeUnsignedLong(blocks)
       Bech32.map('c') +: (writeSize(ints.size) ++ ints)
     }
+  }
+
+  case class UnknownTag(tag: Int5, int5s: Seq[Int5]) extends Tag {
+    override def toInt5s = tag +: (writeSize(int5s.size) ++ int5s)
   }
 
   object Amount {
@@ -315,7 +319,7 @@ object PaymentRequest {
   }
 
   object Tag {
-    def parse(input: Seq[Byte]): Tag = {
+    def parse(input: Seq[Int5]): Tag = {
       val tag = input(0)
       val len = input(1) * 32 + input(2)
       tag match {
@@ -347,6 +351,8 @@ object PaymentRequest {
         case c if c == Bech32.map('c') =>
           val expiry = readUnsignedLong(len, input.drop(3).take(len))
           MinFinalCltvExpiryTag(expiry)
+        case _ =>
+          UnknownTag(tag, input.drop(3).take(len))
       }
     }
   }
@@ -420,8 +426,9 @@ object PaymentRequest {
 
   /**
     * prepend an unsigned long value to a sequence of Int5s
+    *
     * @param value input value
-    * @param acc sequence of Int5 values
+    * @param acc   sequence of Int5 values
     * @return an update sequence of Int5s
     */
   @tailrec
@@ -434,10 +441,11 @@ object PaymentRequest {
   /**
     * convert a tag data size to a sequence of Int5s. It * must * fit on a sequence
     * of 2 Int5 values
+    *
     * @param size data size
     * @return size as a sequence of exactly 2 Int5 values
     */
-  def writeSize(size: Long) : Seq[Int5] = {
+  def writeSize(size: Long): Seq[Int5] = {
     val output = writeUnsignedLong(size)
     // make sure that size is encoded on 2 int5 values
     output.length match {
@@ -450,8 +458,9 @@ object PaymentRequest {
 
   /**
     * reads an unsigned long value from a sequence of Int5s
+    *
     * @param length length of the sequence
-    * @param ints sequence of Int5s
+    * @param ints   sequence of Int5s
     * @return an unsigned long value
     */
   def readUnsignedLong(length: Int, ints: Seq[Int5]): Long = ints.take(length).foldLeft(0L) { case (acc, i) => acc * 32 + i }

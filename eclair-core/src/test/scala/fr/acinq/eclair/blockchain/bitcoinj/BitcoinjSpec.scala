@@ -1,4 +1,4 @@
-package fr.acinq.eclair.blockchain
+package fr.acinq.eclair.blockchain.bitcoinj
 
 import java.io.File
 import java.net.InetSocketAddress
@@ -9,18 +9,16 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.pattern.pipe
 import akka.testkit.{TestKit, TestProbe}
 import fr.acinq.bitcoin.{Satoshi, Script}
-import fr.acinq.eclair.blockchain.rpc.BitcoinJsonRPCClient
-import fr.acinq.eclair.blockchain.spv.BitcoinjKit
-import fr.acinq.eclair.blockchain.wallet.BitcoinjWallet
+import fr.acinq.eclair.blockchain.bitcoind.rpc.BitcoinJsonRPCClient
+import fr.acinq.eclair.blockchain.{PublishAsap, WatchConfirmed, WatchEventConfirmed, WatchSpent}
 import fr.acinq.eclair.channel.{BITCOIN_FUNDING_DEPTHOK, BITCOIN_FUNDING_SPENT}
 import fr.acinq.eclair.randomKey
 import fr.acinq.eclair.transactions.Scripts
 import grizzled.slf4j.Logging
-import org.bitcoinj.core.{Coin, Transaction}
 import org.bitcoinj.script.{Script => BitcoinjScript}
-import org.bitcoinj.wallet.{SendRequest, Wallet}
 import org.json4s.DefaultFormats
 import org.json4s.JsonAST.JValue
+import org.junit.Ignore
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{BeforeAndAfterAll, FunSuiteLike}
@@ -31,6 +29,7 @@ import scala.concurrent.{Await, Future}
 import scala.sys.process.{Process, _}
 import scala.util.Random
 
+@Ignore
 @RunWith(classOf[JUnitRunner])
 class BitcoinjSpec extends TestKit(ActorSystem("test")) with FunSuiteLike with BeforeAndAfterAll with Logging {
 
@@ -84,10 +83,10 @@ class BitcoinjSpec extends TestKit(ActorSystem("test")) with FunSuiteLike with B
     }, max = 30 seconds, interval = 500 millis)
     logger.info(s"generating initial blocks...")
     sender.send(bitcoincli, BitcoinReq("generate", 500))
-    sender.expectMsgType[JValue](10 seconds)
+    sender.expectMsgType[JValue](30 seconds)
   }
 
-  ignore("bitcoinj wallet commit") {
+  test("bitcoinj wallet commit") {
     val datadir = new File(INTEGRATION_TMP_DIR, s"datadir-bitcoinj")
     val bitcoinjKit = new BitcoinjKit("regtest", datadir, staticPeers = new InetSocketAddress("localhost", 28333) :: Nil)
     bitcoinjKit.startAsync()
@@ -136,14 +135,14 @@ class BitcoinjSpec extends TestKit(ActorSystem("test")) with FunSuiteLike with B
     wallet.maybeCommitTx(tx2) // returns true! how come?
   }*/
 
-  ignore("manual publish/watch") {
+  test("manual publish/watch") {
     val datadir = new File(INTEGRATION_TMP_DIR, s"datadir-bitcoinj")
     val bitcoinjKit = new BitcoinjKit("regtest", datadir, staticPeers = new InetSocketAddress("localhost", 28333) :: Nil)
     bitcoinjKit.startAsync()
     bitcoinjKit.awaitRunning()
 
     val sender = TestProbe()
-    val watcher = system.actorOf(Props(new SpvWatcher(bitcoinjKit)), name = "spv-watcher")
+    val watcher = system.actorOf(Props(new BitcoinjWatcher(bitcoinjKit)), name = "bitcoinj-watcher")
     val wallet = new BitcoinjWallet(Future.successful(bitcoinjKit.wallet()))
 
     val address = Await.result(wallet.getFinalAddress, 10 seconds)
@@ -159,10 +158,9 @@ class BitcoinjSpec extends TestKit(ActorSystem("test")) with FunSuiteLike with B
     val listener = TestProbe()
     val fundingPubkeyScript = Script.write(Script.pay2wsh(Scripts.multiSig2of2(randomKey.publicKey, randomKey.publicKey)))
     val result = Await.result(wallet.makeFundingTx(fundingPubkeyScript, Satoshi(10000L), 20000), 10 seconds)
-    watcher ! Hint(new BitcoinjScript(fundingPubkeyScript))
     assert(Await.result(wallet.commit(result.fundingTx), 10 seconds))
-    watcher ! WatchSpent(listener.ref, result.fundingTx.txid, result.fundingTxOutputIndex, BITCOIN_FUNDING_SPENT)
-    watcher ! WatchConfirmed(listener.ref, result.fundingTx.txid, 3, BITCOIN_FUNDING_DEPTHOK)
+    watcher ! WatchSpent(listener.ref, result.fundingTx, result.fundingTxOutputIndex, BITCOIN_FUNDING_SPENT)
+    watcher ! WatchConfirmed(listener.ref, result.fundingTx, 3, BITCOIN_FUNDING_DEPTHOK)
     watcher ! PublishAsap(result.fundingTx)
 
     logger.info(s"waiting for confirmation of ${result.fundingTx.txid}")
@@ -170,14 +168,14 @@ class BitcoinjSpec extends TestKit(ActorSystem("test")) with FunSuiteLike with B
     assert(event.event === BITCOIN_FUNDING_DEPTHOK)
   }
 
-  ignore("multiple publish/watch") {
+  test("multiple publish/watch") {
     val datadir = new File(INTEGRATION_TMP_DIR, s"datadir-bitcoinj")
     val bitcoinjKit = new BitcoinjKit("regtest", datadir, staticPeers = new InetSocketAddress("localhost", 28333) :: Nil)
     bitcoinjKit.startAsync()
     bitcoinjKit.awaitRunning()
 
     val sender = TestProbe()
-    val watcher = system.actorOf(Props(new SpvWatcher(bitcoinjKit)), name = "spv-watcher")
+    val watcher = system.actorOf(Props(new BitcoinjWatcher(bitcoinjKit)), name = "bitcoinj-watcher")
     val wallet = new BitcoinjWallet(Future.successful(bitcoinjKit.wallet()))
 
     val address = Await.result(wallet.getFinalAddress, 10 seconds)
@@ -193,10 +191,9 @@ class BitcoinjSpec extends TestKit(ActorSystem("test")) with FunSuiteLike with B
           val listener = TestProbe()
           val fundingPubkeyScript = Script.write(Script.pay2wsh(Scripts.multiSig2of2(randomKey.publicKey, randomKey.publicKey)))
           val result = Await.result(wallet.makeFundingTx(fundingPubkeyScript, Satoshi(10000L), 20000), 10 seconds)
-          watcher ! Hint(new BitcoinjScript(fundingPubkeyScript))
           assert(Await.result(wallet.commit(result.fundingTx), 10 seconds))
-          watcher ! WatchSpent(listener.ref, result.fundingTx.txid, result.fundingTxOutputIndex, BITCOIN_FUNDING_SPENT)
-          watcher ! WatchConfirmed(listener.ref, result.fundingTx.txid, 3, BITCOIN_FUNDING_DEPTHOK)
+          watcher ! WatchSpent(listener.ref, result.fundingTx, result.fundingTxOutputIndex, BITCOIN_FUNDING_SPENT)
+          watcher ! WatchConfirmed(listener.ref, result.fundingTx, 3, BITCOIN_FUNDING_DEPTHOK)
           watcher ! PublishAsap(result.fundingTx)
           (result.fundingTx.txid, listener)
       }

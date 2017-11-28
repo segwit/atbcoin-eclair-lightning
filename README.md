@@ -44,6 +44,12 @@ zmqpubrawblock=tcp://127.0.0.1:29000
 zmqpubrawtx=tcp://127.0.0.1:29000
 ```
 
+On **__testnet__**, you also need to make sure that all your UTXOs are `p2sh-of-p2wpkh`.
+To do this, use the debug console, create a new address with `getnewaddress`, import it as a witness address with `addwitnessaddress`, and
+send all your balance to this witness address. 
+If you need to create and send funds manually, don't forget to create and specify a witness address for the change output (this option is avaliable on the GUI once you set the `Enable coin control features` wallet option).
+
+
 ### Installing Eclair
 
 The released binaries can be downloaded [here](https://github.com/ACINQ/eclair/releases).
@@ -118,8 +124,8 @@ java -Declair.datadir=/tmp/node1 -jar eclair-node-gui-<version>-<commit_id>.jar
  method       |  params                                       | description
  -------------|-----------------------------------------------|-----------------------------------------------------------
   getinfo     |                                               | return basic node information (id, chain hash, current block height) 
-  connect     | host, port, nodeId                            | connect to another lightning node through a secure connection
-  open        | host, port, nodeId, fundingSatoshis, pushMsat | opens a channel with another lightning node
+  connect     | nodeId, host, port                            | connect to another lightning node through a secure connection
+  open        | nodeId, host, port, fundingSatoshis, pushMsat | opens a channel with another lightning node
   peers       |                                               | list existing local peers
   channels    |                                               | list existing local channels
   channel     | channelId                                     | retrieve detailed information about a given channel

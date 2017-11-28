@@ -32,9 +32,9 @@ case class Ping(pongLength: Int, data: BinaryData) extends SetupMessage
 case class Pong(data: BinaryData) extends SetupMessage
 
 case class ChannelReestablish(
-                             channelId: BinaryData,
-                             nextLocalCommitmentNumber: Long,
-                             nextRemoteRevocationNumber: Long) extends ChannelMessage with HasChannelId
+                               channelId: BinaryData,
+                               nextLocalCommitmentNumber: Long,
+                               nextRemoteRevocationNumber: Long) extends ChannelMessage with HasChannelId
 
 case class OpenChannel(chainHash: BinaryData,
                        temporaryChannelId: BinaryData,
@@ -51,6 +51,7 @@ case class OpenChannel(chainHash: BinaryData,
                        revocationBasepoint: Point,
                        paymentBasepoint: Point,
                        delayedPaymentBasepoint: Point,
+                       htlcBasepoint: Point,
                        firstPerCommitmentPoint: Point,
                        channelFlags: Byte) extends ChannelMessage with HasTemporaryChannelId
 
@@ -66,6 +67,7 @@ case class AcceptChannel(temporaryChannelId: BinaryData,
                          revocationBasepoint: Point,
                          paymentBasepoint: Point,
                          delayedPaymentBasepoint: Point,
+                         htlcBasepoint: Point,
                          firstPerCommitmentPoint: Point) extends ChannelMessage with HasTemporaryChannelId
 
 case class FundingCreated(temporaryChannelId: BinaryData,

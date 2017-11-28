@@ -56,12 +56,20 @@ package object eclair {
   }
 
   /**
-    * Converts fee-rate-per-kB to fee-rate-per-kw, *based on a standard commit tx*
+    * Converts feerate in satoshi-per-bytes to feerate in satoshi-per-kw
     *
-    * @param feeratePerKb
-    * @return
+    * @param feeratePerByte feerate in satoshi-per-bytes
+    * @return feerate in satoshi-per-kw
     */
-  def feerateKb2Kw(feeratePerKb: Long): Long = feeratePerKb / 2
+  def feerateByte2Kw(feeratePerByte: Long): Long = feeratePerByte * 1024 / 4
 
 
+  /**
+    *
+    * @param address bitcoin Base58 address
+    * @return true if the address is a segwit address i.e. a p2sh-of-p2wpkh address.
+    *         We approximate this be returning true if the address is a p2sh address, there is no
+    *         way to tell what the script is.
+    */
+  def isSegwitAddress(address: String) : Boolean = address.startsWith("2") || address.startsWith("3")
 }

@@ -19,6 +19,7 @@ import javafx.scene.input.ContextMenuEvent
 import javafx.scene.layout.{AnchorPane, HBox, StackPane, VBox}
 import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
+import javafx.scene.text.Text
 import javafx.stage.FileChooser.ExtensionFilter
 import javafx.stage._
 import javafx.util.{Callback, Duration}
@@ -117,6 +118,7 @@ class MainController(val handlers: Handlers, val hostServices: HostServices) ext
 
   @FXML var blocker: StackPane = _
   @FXML var blockerDialog: HBox = _
+  @FXML var blockerDialogTitleEngineName: Text = _
 
   val PAYMENT_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
   val moneyFormatter = NumberFormat.getInstance(Locale.getDefault)
@@ -215,6 +217,7 @@ class MainController(val handlers: Handlers, val hostServices: HostServices) ext
           val directionImage = new ImageView
           directionImage.setFitWidth(20)
           directionImage.setFitHeight(20)
+
           override def updateItem(item: ChannelInfo, empty: Boolean): Unit = {
             super.updateItem(item, empty)
             if (item == null || empty) {
@@ -222,19 +225,19 @@ class MainController(val handlers: Handlers, val hostServices: HostServices) ext
               setText(null)
             } else {
               item match {
-                case ChannelInfo(_ , Some(true), Some(true)) =>
+                case ChannelInfo(_, Some(true), Some(true)) =>
                   directionImage.setImage(new Image("/gui/commons/images/in-out-11.png", false))
                   setTooltip(new Tooltip("Both Node 1 and Node 2 are enabled"))
                   setGraphic(directionImage)
-                case ChannelInfo(_ , Some(true), Some(false)) =>
+                case ChannelInfo(_, Some(true), Some(false)) =>
                   directionImage.setImage(new Image("/gui/commons/images/in-out-10.png", false))
                   setTooltip(new Tooltip("Node 1 is enabled, but not Node 2"))
                   setGraphic(directionImage)
-                case ChannelInfo(_ , Some(false), Some(true)) =>
+                case ChannelInfo(_, Some(false), Some(true)) =>
                   directionImage.setImage(new Image("/gui/commons/images/in-out-01.png", false))
                   setTooltip(new Tooltip("Node 2 is enabled, but not Node 1"))
                   setGraphic(directionImage)
-                case ChannelInfo(_ , Some(false), Some(false)) =>
+                case ChannelInfo(_, Some(false), Some(false)) =>
                   directionImage.setImage(new Image("/gui/commons/images/in-out-00.png", false))
                   setTooltip(new Tooltip("Neither Node 1 nor Node 2 is enabled"))
                   setGraphic(directionImage)
@@ -459,7 +462,8 @@ class MainController(val handlers: Handlers, val hostServices: HostServices) ext
     receiveStage.show
   }
 
-  def showBlockerModal = {
+  def showBlockerModal(backendName: String) = {
+    blockerDialogTitleEngineName.setText(backendName)
     val fadeTransition = new FadeTransition(Duration.millis(300))
     fadeTransition.setFromValue(0)
     fadeTransition.setToValue(1)

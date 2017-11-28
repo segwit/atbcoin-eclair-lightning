@@ -3,8 +3,8 @@ package fr.acinq.eclair.router
 import akka.actor.ActorSystem
 import fr.acinq.bitcoin.Crypto.PrivateKey
 import fr.acinq.bitcoin.{BinaryData, Block, Satoshi, Script, Transaction}
-import fr.acinq.eclair.blockchain.rpc.{BitcoinJsonRPCClient, ExtendedBitcoinClient}
-import fr.acinq.eclair.blockchain.wallet.BitcoinCoreWallet
+import fr.acinq.eclair.blockchain.bitcoind.BitcoinCoreWallet
+import fr.acinq.eclair.blockchain.bitcoind.rpc.{BitcoinJsonRPCClient, ExtendedBitcoinClient}
 import fr.acinq.eclair.transactions.Scripts
 import fr.acinq.eclair.wire.ChannelAnnouncement
 import fr.acinq.eclair.{randomKey, toShortId}
@@ -66,11 +66,10 @@ object AnnouncementsBatchValidationSpec {
     val node2BitcoinKey = randomKey
     val amount = Satoshi(1000000)
     // first we publish the funding tx
-    val wallet = new BitcoinCoreWallet(extendedBitcoinClient.rpcClient, null)
+    val wallet = new BitcoinCoreWallet(extendedBitcoinClient.rpcClient)
     val fundingPubkeyScript = Script.write(Script.pay2wsh(Scripts.multiSig2of2(node1BitcoinKey.publicKey, node2BitcoinKey.publicKey)))
-    val fundingTxFuture = wallet.makeParentAndFundingTx(fundingPubkeyScript, amount, 10000)
+    val fundingTxFuture = wallet.makeFundingTx(fundingPubkeyScript, amount, 10000)
     val res = Await.result(fundingTxFuture, 10 seconds)
-    Await.result(extendedBitcoinClient.publishTransaction(res.parentTx), 10 seconds)
     Await.result(extendedBitcoinClient.publishTransaction(res.fundingTx), 10 seconds)
     SimulatedChannel(node1Key, node2Key, node1BitcoinKey, node2BitcoinKey, amount, res.fundingTx, res.fundingTxOutputIndex)
   }

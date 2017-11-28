@@ -6,10 +6,10 @@ import fr.acinq.eclair.channel.Helpers.Funding
 import fr.acinq.eclair.channel._
 import fr.acinq.eclair.crypto.{ShaChain, Sphinx}
 import fr.acinq.eclair.payment.{Local, Relayed}
-import fr.acinq.eclair.{UInt64, randomKey}
 import fr.acinq.eclair.transactions.Transactions.CommitTx
 import fr.acinq.eclair.transactions._
-import fr.acinq.eclair.wire.{ChannelCodecs, CommitSig, UpdateAddHtlc}
+import fr.acinq.eclair.wire.{ChannelCodecs, UpdateAddHtlc}
+import fr.acinq.eclair.{UInt64, randomKey}
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
@@ -44,6 +44,7 @@ object ChannelStateSpec {
     revocationSecret = Scalar(BinaryData("02" * 32)),
     paymentKey = PrivateKey(BinaryData("03" * 32) :+ 1.toByte),
     delayedPaymentKey = Scalar(BinaryData("04" * 32)),
+    htlcKey = PrivateKey(BinaryData("06" * 32) :+ 1.toByte),
     defaultFinalScriptPubKey = Nil,
     shaSeed = BinaryData("05" * 32),
     isFunder = true,
@@ -62,6 +63,7 @@ object ChannelStateSpec {
     revocationBasepoint = Scalar(BinaryData("02" * 32)).toPoint,
     paymentBasepoint = Scalar(BinaryData("03" * 32)).toPoint,
     delayedPaymentBasepoint = Scalar(BinaryData("04" * 32)).toPoint,
+    htlcBasepoint = Scalar(BinaryData("06" * 32)).toPoint,
     globalFeatures = "foo".getBytes(),
     localFeatures = "bar".getBytes())
 
