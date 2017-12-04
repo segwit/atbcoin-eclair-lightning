@@ -100,7 +100,7 @@ class IntegrationSpec extends TestKit(ActorSystem("test")) with FunSuiteLike wit
   def instantiateEclairNode(name: String, config: Config) = {
     val datadir = new File(INTEGRATION_TMP_DIR, s"datadir-eclair-$name")
     datadir.mkdirs()
-    new PrintWriter(new File(datadir, "eclair.conf")) {
+    new PrintWriter(new File(datadir, "lightning.conf")) {
       write(config.root().render());
       close
     }

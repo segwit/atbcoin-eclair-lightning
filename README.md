@@ -80,7 +80,7 @@ java -jar eclair-node-<version>-<commit_id>.jar
 
 Eclair reads its configuration file, and write its logs, to a `datadir` directory, located in `~/.eclair` by default.
 
-To change your node's configuration, create a file named `eclair.conf` in `datadir`. Here's an example configuration file:
+To change your node's configuration, create a file named `lightning.conf` in `datadir`. Here's an example configuration file:
 
 ```
 eclair.server.port=9735

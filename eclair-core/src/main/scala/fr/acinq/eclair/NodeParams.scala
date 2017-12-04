@@ -67,13 +67,13 @@ object NodeParams {
   /**
     * Order of precedence for the configuration parameters:
     * 1) Java environment variables (-D...)
-    * 2) Configuration file eclair.conf
+    * 2) Configuration file lightning.conf
     * 3) Optionally provided config
     * 4) Default values in reference.conf
     */
   def loadConfiguration(datadir: File, overrideDefaults: Config = ConfigFactory.empty()) =
     ConfigFactory.parseProperties(System.getProperties)
-      .withFallback(ConfigFactory.parseFile(new File(datadir, "eclair.conf")))
+      .withFallback(ConfigFactory.parseFile(new File(datadir, "lightning.conf")))
       .withFallback(overrideDefaults)
       .withFallback(ConfigFactory.load()).getConfig("eclair")
 
