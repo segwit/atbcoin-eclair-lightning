@@ -112,7 +112,7 @@ name                  | description                                | default val
 ----------------------|--------------------------------------------|--------------
 eclair.datadir        | Path to the data directory                 | ~/.eclair
 eclair.headless       | Run eclair without a GUI                   | 
-eclair.printToConsole | Log to stdout (in addition to eclair.log)  |
+eclair.printToConsole | Log to stdout (in addition to lightning.log)  |
 
 For example, to specify a different data directory you would run the following command:
 ```shell

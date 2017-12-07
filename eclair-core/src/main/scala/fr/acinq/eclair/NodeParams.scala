@@ -100,7 +100,7 @@ object NodeParams {
       case _ => throw new RuntimeException("wrong name of the network")
     }
 
-    val sqlite = DriverManager.getConnection(s"jdbc:sqlite:${new File(datadir, "eclair.sqlite")}")
+    val sqlite = DriverManager.getConnection(s"jdbc:sqlite:${new File(datadir, "lightning.sqlite")}")
     val channelsDb = new SqliteChannelsDb(sqlite)
     val peersDb = new SqlitePeersDb(sqlite)
     val networkDb = new SqliteNetworkDb(sqlite)

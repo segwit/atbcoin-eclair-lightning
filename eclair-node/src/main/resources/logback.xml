@@ -10,7 +10,7 @@
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>${eclair.datadir:-${user.home}/.eclair}/eclair.log</file>
+        <file>${eclair.datadir:-${user.home}/.eclair}/lightning.log</file>
         <append>true</append>
         <encoder>
             <pattern>%d %-5level %logger{36} %X{akkaSource} %X{channelId} - %msg%ex{24}%n</pattern>

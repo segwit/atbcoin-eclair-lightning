@@ -111,9 +111,10 @@ class Setup(datadir: File, overrideDefaults: Config = ConfigFactory.empty(), act
     assert(chainHash == nodeParams.chainHash, s" chainHash mismatch (conf=${nodeParams.chainHash} != atbcoin=$chainHash)")
     assert(progress > 0.99, "atbcoin should be synchronized")
 
-      atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 3, bitcoinVersion.length() - 2)
-      atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 6, bitcoinVersion.length() - 5) + "." + atbVersion
+      atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 1, bitcoinVersion.length() )
+      atbVersion = bitcoinVersion.substring(bitcoinVersion.length() - 5, bitcoinVersion.length() - 4) + "." + atbVersion
       atbVersion = bitcoinVersion.substring(0, bitcoinVersion.length() - 6) +  "." + atbVersion
+
 
       Bitcoind(bitcoinClient)
     case BITCOINJ =>
